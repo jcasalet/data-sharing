@@ -176,7 +176,7 @@ class testCenter:
     def getNumberOfObservations(self):
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
-def plotLRPScatter(center, f, year, thresholds):
+def plotLRPScatter(center, f, year, thresholds, i):
     yearList = [i for i in range(0, year+1)]
     x = yearList
     y_plrps = [0] + center.pathogenicLRPs[0:year]
@@ -207,11 +207,11 @@ def plotLRPScatter(center, f, year, thresholds):
     #plt.legend([ax_p, ax_b])
 
     #plt.show()
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + center.name + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
+    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + center.name + '_y' + str(year) + '_' + str(f) + '_lrp_scatter_' + str(i))
     plt.close()
 
 
-def plotLRPHist(center, f, years, thresholds, bins):
+def plotLRPHist(center, f, years, thresholds, bins, i):
     numLRs = 0
     pathogenic_x = list()
     benign_x = list()
@@ -261,7 +261,7 @@ def plotLRPHist(center, f, years, thresholds, bins):
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     #plt.show()
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + center.name + '_y' + str(years) + '_' + str(f) + '_lrp_hist')
+    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + center.name + '_y' + str(years) + '_' + str(f) + '_lrp_hist_' + str(i))
     plt.close()
 
 def findMinMax(myList):
@@ -396,46 +396,44 @@ def main():
     bins = 20 # number of bins for histogram plot
     PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
     freq = 1e-5 # this is the frequency of the variant we are interested in
-
-
-    UW = testCenter('UW', 15000, 3000)
-    ambry = testCenter('ambry', 1000000, 450000)
-    invitae = testCenter('invitae', 1000000, 450000)
-    arup = testCenter('arup', 150000, 30000)
-    allCenters = testCenter('all', 0, 0)
-    centerList = [UW, ambry, invitae, arup]
-
-
-    '''UW = testCenter('UW', 15000, 3000)
-    ambry = testCenter('ambry', 300000, 60000)
-    invitae = testCenter('invitae', 250000, 50000)
-    arup = testCenter('arup', 75000, 15000)'''
-
+    numSimulations = 10
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
+    UWList = list()
+    ambryList = list()
+    invitaeList = list()
+    arupList = list()
+    allCentersList = list()
+    centerListList  = [UWList, ambryList, invitaeList, arupList]
 
-    # first, populate each center's db with variants based on initial sizes
-    for center in centerList:
-        center.runSimulation(p, b, P, B, freq, PSF, center.initialSize, 0)
+    for i in range(numSimulations):
+        UWList.append(testCenter('UW', 15000, 3000))
+        ambryList.append(testCenter('ambry', 1000000, 450000))
+        invitaeList.append(testCenter('invitae', 1000000, 450000))
+        arupList.append(testCenter('arup', 150000, 30000))
+        allCentersList.append(testCenter('all', 0, 0))
 
-    # and combine all centers data into allCenters for year 0
-    combineCenters(centerList, allCenters, 0)
+        # first, populate each center's db with variants based on initial sizes
+        for centers in centerListList:
+            centers[i].runSimulation(p, b, P, B, freq, PSF, centers[i].initialSize, 0)
+            # and combine all centers data into allCenters for year 0
+            combineCenters(centers, allCentersList[i], 0)
 
-    # second, simulate forward in time, add variants to each center's db based on tests per year
-    yearsOfInterest = [1, 5, 10, 15, 20]
-    for year in range(1, years+1):
-        for center in centerList:
-            center.runSimulation(p, b, P, B, freq, PSF, center.testsPerYear, year)
+        # second, simulate forward in time, add variants to each center's db based on tests per year
+        yearsOfInterest = [1, 5, 10, 15, 20]
+        for year in range(1, years+1):
+            for centers in centerListList:
+                centers[i].runSimulation(p, b, P, B, freq, PSF, centers[i].testsPerYear, year)
+                if year in yearsOfInterest:
+                    plotLRPHist(centers[i], freq, year, thresholds, bins, i)
+                    plotLRPScatter(centers[i], freq, year, thresholds, i)
+            combineCenters(centers, allCentersList[i], year)
             if year in yearsOfInterest:
-                plotLRPHist(center, freq, year, thresholds, bins)
-                plotLRPScatter(center, freq, year, thresholds)
-        combineCenters(centerList, allCenters, year)
-        if year in yearsOfInterest:
-            plotLRPHist(allCenters, freq, year, thresholds, bins)
-            plotLRPScatter(allCenters, freq, year, thresholds)
+                plotLRPHist(centers[i], freq, year, thresholds, bins, i)
+                plotLRPScatter(centers[i], freq, year, thresholds, i)
 
-    getStatisticsForSimulation(centerList)
-    getStatisticsForSimulation([allCenters])
+        #getStatisticsForSimulation(centerList)
+        #getStatisticsForSimulation([allCenters])
 
 if __name__ == "__main__":
     main()
