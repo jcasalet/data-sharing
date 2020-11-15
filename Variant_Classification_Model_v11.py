@@ -3,8 +3,19 @@ import numbers
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import math
-from collections import defaultdict
+from time import time
+import logging
+import sys
 
+logger = logging.getLogger()
+defaultLogLevel = "DEBUG"
+logger.setLevel(0)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(0)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.debug("Established logger")
 
 def prod(theList):
     if not isinstance(theList, list):
@@ -42,13 +53,13 @@ def getRandomUniformPriorLR():
 
 def sampleEvidenceFromObservations(expectedNum, observations):
     # assign random uniform prior LR as first piece of evidence
-    #initialLR = [getRandomUniformPriorLR()]
+    initialLR = [getRandomUniformPriorLR()]
     sampleLRs = sample(observations, int(expectedNum), replace=True)
     if len(sampleLRs) == 0:
         return []
     else:
-        #return initialLR + sampleLRs
-        return sampleLRs
+        return initialLR + sampleLRs
+        #return sampleLRs
 
 def getExpectedNumsFromPSF(n, PSF):
     # for now, we've fixed PSF at a number but could in the future make it a distribution from which we sample
@@ -177,11 +188,25 @@ class testCenter:
     def getNumberOfObservations(self):
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
-def plotLRPScatter(center, f, year, thresholds, simulation):
+def plotLRPScatter(centerSimulations, f, year, thresholds):
+    numberOfSims = len(centerSimulations)
+    centerName = centerSimulations[0].name
+    pathogenic_y = list()
+    benign_y = list()
+
+    for i in range(len(centerSimulations)):
+        pathogenic_y.append(list())
+        pathogenic_y[i].append(0)
+        pathogenic_y[i] += centerSimulations[i].pathogenicLRPs[0:year]
+        benign_y.append(list())
+        benign_y[i].append(0)
+        benign_y[i] += centerSimulations[i].benignLRPs[0:year]
+
     yearList = [i for i in range(0, year+1)]
     x = yearList
-    y_plrps = [0] + center.pathogenicLRPs[0:year]
-    y_blprs = [0] + center.benignLRPs[0:year]
+    '''y_plrps = [0] + center.pathogenicLRPs[0:year]
+    y_blprs = [0] + center.benignLRPs[0:year]'''
+
     if f <= 1e-6:
         plt.xlim(0, 20)
         plt.ylim(-5, 5)
@@ -198,25 +223,25 @@ def plotLRPScatter(center, f, year, thresholds, simulation):
     plt.axhline(y=thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
     plt.axhline(y=thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
-    ax_p = plt.plot(x, y_plrps, marker='x', color='red', label='pathogenic', alpha=1.0)
-    ax_b = plt.plot(x, y_blprs, marker='o', color='green', label='benign', alpha=0.5)
+    for i in range(len(centerSimulations)):
+        plt.plot(x, pathogenic_y[i], marker='x', color='red', label='pathogenic', alpha=1.0/(3+i))
+        plt.plot(x, benign_y[i], marker='o', color='green', label='benign', alpha=1.0/(2+i))
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$')
     plt.xlabel('year')
-    plt.title('sim=' + str(simulation) + ':' + str(center.name) + '|freq=' + str(f) + '|tested=' + str(center.currentSize) +
-              '|obs=' + str(center.getNumberOfLRs()) + '|year=' + str(year))
+    plt.title(str(centerName) + '|freq=' + str(f) + '|year=' + str(year))
     #plt.legend([ax_p, ax_b])
 
     #plt.show()
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + center.name + '_y' + str(year) + '_' + str(f) + '_lrp_scatter_' + str(simulation))
+    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
     plt.close()
 
 
-def plotLRPHist(centerSimulations, f, year, thresholds, bins):
+def plotLRPHist(centerSimulations, f, year, thresholds):
     centerName = centerSimulations[0].name
-    pathogenic_x = list()
-    benign_x = list()
 
+    '''pathogenic_x = list()
+    benign_x = list()
     for i in range(len(centerSimulations)):
         pathogenic_x.append(list())
         for lrList in centerSimulations[i].pathogenicLRs:
@@ -225,7 +250,16 @@ def plotLRPHist(centerSimulations, f, year, thresholds, bins):
         benign_x.append(list())
         for lrList in centerSimulations[i].benignLRs:
             if len(lrList) != 0:
-                benign_x[i].append(centerSimulations[i].benignLRPs[year])
+                benign_x[i].append(centerSimulations[i].benignLRPs[year])'''
+    pathogenic_x = [0]
+    benign_x = [0]
+    for i in range(len(centerSimulations)):
+        for lrList in centerSimulations[i].pathogenicLRs:
+            if len(lrList) != 0:
+                pathogenic_x.append(centerSimulations[i].pathogenicLRPs[year])
+        for lrList in centerSimulations[i].benignLRs:
+            if len(lrList) != 0:
+                benign_x.append(centerSimulations[i].benignLRPs[year])
 
     # TODO calculate the plot limits dynamically, not hard-coded
     ax = plt.figure(figsize=(8, 6)).gca()
@@ -234,9 +268,9 @@ def plotLRPHist(centerSimulations, f, year, thresholds, bins):
         bins = numpy.arange(-10, 40, 1)
         plt.ylim(0, 12)
     elif f <= 1e-5:
-        plt.xlim(-15, 50)
+        plt.xlim(-15, 40)
         bins = numpy.arange(-15, 50, 1)
-        plt.ylim(0, 50)
+        #plt.ylim(0, 1)
     elif f <= 1e-4:
         plt.xlim(-20, 20)
         plt.ylim(0, 60)
@@ -254,11 +288,11 @@ def plotLRPHist(centerSimulations, f, year, thresholds, bins):
     plt.axvline(x=thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-    for i in range(len(centerSimulations)):
-        plt.hist([benign_x[i], pathogenic_x[i]], label=['benign', 'pathogenic'], bins=bins, alpha=1.0/(2+i))
+
+    plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], density=True, range=(-15, 50), bins=bins)
 
     plt.xlabel('evidence = ' + r'$\sum_{i} log(LR_i)$')
-    plt.ylabel('binned counts')
+    plt.ylabel('probability mass')
 
     plt.title(centerName + '|freq=' + str(f) + '|year=' + str(year))
     plt.legend(loc='upper right')
@@ -385,10 +419,9 @@ def main():
     B = {'BS': BS, 'BP': BP}
 
     years = 20 # how long in future to project (i.e. number of iterations in simulation)
-    bins = 20 # number of bins for histogram plot
     PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
     freq = 1e-5 # this is the frequency of the variant we are interested in
-    numSimulations = 10
+    numSimulations = 20
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
     UWList = list()
@@ -399,6 +432,9 @@ def main():
     centerListList  = [UWList, ambryList, invitaeList, arupList]
 
     for i in range(numSimulations):
+        logger.info('============================================')
+        logger.info('simulation = ' + str(i))
+        logger.info('============================================')
         UWList.append(testCenter('UW', 15000, 3000))
         ambryList.append(testCenter('ambry', 1000000, 450000))
         invitaeList.append(testCenter('invitae', 1000000, 450000))
@@ -414,16 +450,44 @@ def main():
         # second, simulate forward in time, add variants to each center's db based on tests per year
         yearsOfInterest = [1, 5, 10, 15, 20]
         for year in range(1, years+1):
+            # run simulations at each center for subsequent years
             for centers in centerListList:
+                start=time()
                 centers[i].runSimulation(p, b, P, B, freq, PSF, centers[i].testsPerYear, year)
-                if year in yearsOfInterest:
-                    plotLRPHist(centers, freq, year, thresholds, bins)
-                    plotLRPScatter(centers[i], freq, year, thresholds, i)
-                combineCenter(centers[i], allCentersList[i], year)
+                endTime = time()
+                logger.info('center=' + centers[i].name + ' runSimulation took ' + str(endTime - startTime))
+            # plot graphs for each individual center in years of interest
             if year in yearsOfInterest:
-                plotLRPHist(allCentersList, freq, year, thresholds, bins)
-                plotLRPScatter(allCentersList[i], freq, year, thresholds, i)
+                # plot the histograms
+                startTime = time()
+                plotLRPHist(centers, freq, year, thresholds)
+                endTime = time()
+                logger.info('center=' + centers[i].name + ' lrphist took ' + str(endTime - startTime))
 
+                # plot the scatter plots
+                startTime = time()
+                plotLRPScatter(centers, freq, year, thresholds)
+                endTime = time()
+                logger.info('center=' + centers[i].name + ' lrpscatter took ' + str(endTime - startTime))
+
+            # combine the centers
+            startTime = time()
+            combineCenter(centers[i], allCentersList[i], year)
+            endTime = time()
+            logger.info('center=' + centers[i].name + ' combineCenter took ' + str(endTime - startTime))
+            # plot graphs for combined center in years of interest
+            if year in yearsOfInterest:
+                # plot histograms for all centers combined
+                startTime = time()
+                plotLRPHist(allCentersList, freq, year, thresholds)
+                endTime = time()
+                logger.info('center=all lrphist took ' + str(endTime - startTime))
+
+                # plot scatter plots for all centers combined
+                startTime = time()
+                plotLRPScatter(allCentersList, freq, year, thresholds)
+                endTime = time()
+                logger.info('center=all lrpscatter took ' + str(endTime - startTime))
         '''for centers in centerListList:
             getStatisticsForSimulation(centers)
         getStatisticsForSimulation(allCentersList)'''
