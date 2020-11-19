@@ -418,10 +418,10 @@ def main():
     BP = 1 / 2.08 # supporting evidence for benign
     B = {'BS': BS, 'BP': BP}
 
-    years = 5 # how long in future to project (i.e. number of iterations in simulation)
+    years = 20 # how long in future to project (i.e. number of iterations in simulation)
     PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
     freq = 1e-5 # this is the frequency of the variant we are interested in
-    numSimulations = 1
+    numSimulations = 20
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
     UWList = list()
@@ -470,11 +470,11 @@ def main():
                     endTime = time()
                     #logger.info('center=' + centers[i].name + ' lrpscatter took ' + str(endTime - startTime))
 
-            # combine the centers
-            startTime = time()
-            combineCenter(centers[i], allCentersList[i], year)
-            endTime = time()
-            logger.info('center=' + centers[i].name + ' combineCenter took ' + str(endTime - startTime))
+                # combine the centers
+                startTime = time()
+                combineCenter(centers[i], allCentersList[i], year)
+                endTime = time()
+                logger.info('center=' + centers[i].name + ' combineCenter took ' + str(endTime - startTime))
             # plot graphs for combined center in years of interest
             if year in yearsOfInterest:
                 # plot histograms for all centers combined
@@ -488,12 +488,14 @@ def main():
                 plotLRPScatter(allCentersList, freq, year, thresholds)
                 endTime = time()
                 #logger.info('center=all lrpscatter took ' + str(endTime - startTime))
-    for centers in centerListList:
+
+    '''for centers in centerListList:
         startTime = time()
         getStatisticsForSimulation(centers)
         endTime = time()
         logger.info('center=' + centers[0].name + ' getStats took ' + str(endTime - startTime))
-    getStatisticsForSimulation(allCentersList)
+    
+    getStatisticsForSimulation(allCentersList)'''
 
 
 
