@@ -189,7 +189,6 @@ class testCenter:
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
 def plotLRPScatter(centerSimulations, f, year, thresholds):
-    numberOfSims = len(centerSimulations)
     centerName = centerSimulations[0].name
     pathogenic_y = list()
     benign_y = list()
@@ -204,8 +203,6 @@ def plotLRPScatter(centerSimulations, f, year, thresholds):
 
     yearList = [i for i in range(0, year+1)]
     x = yearList
-    '''y_plrps = [0] + center.pathogenicLRPs[0:year]
-    y_blprs = [0] + center.benignLRPs[0:year]'''
 
     if f <= 1e-6:
         plt.xlim(0, 20)
@@ -229,9 +226,7 @@ def plotLRPScatter(centerSimulations, f, year, thresholds):
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
-    #plt.title(str(centerName) + '|freq=' + str(f) + '|year=' + str(year))
 
-    #plt.show()
     plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
     plt.close()
 
@@ -239,17 +234,6 @@ def plotLRPScatter(centerSimulations, f, year, thresholds):
 def plotLRPHist(centerSimulations, f, year, thresholds):
     centerName = centerSimulations[0].name
 
-    '''pathogenic_x = list()
-    benign_x = list()
-    for i in range(len(centerSimulations)):
-        pathogenic_x.append(list())
-        for lrList in centerSimulations[i].pathogenicLRs:
-            if len(lrList) != 0:
-                pathogenic_x[i].append(centerSimulations[i].pathogenicLRPs[year])
-        benign_x.append(list())
-        for lrList in centerSimulations[i].benignLRs:
-            if len(lrList) != 0:
-                benign_x[i].append(centerSimulations[i].benignLRPs[year])'''
     pathogenic_x = [0]
     benign_x = [0]
     for i in range(len(centerSimulations)):
@@ -293,11 +277,9 @@ def plotLRPHist(centerSimulations, f, year, thresholds):
     plt.xlabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.ylabel('probability mass', fontsize=18)
 
-    #plt.title(centerName + '|freq=' + str(f) + '|year=' + str(year))
     plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    #plt.show()
     plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
     plt.close()
 

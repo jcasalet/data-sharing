@@ -103,11 +103,11 @@ class testCenter:
         self.currentSize += numTests
 
         # generate observations of variant (assumed to be pathogenic) from people with variant
-        self.pathogenicObservations += self.generateObservationsFromTests(pathogenicProbabilities, pathogenicLikelihoodRatios,
+        self.pathogenicObservations = self.generateObservationsFromTests(pathogenicProbabilities, pathogenicLikelihoodRatios,
                                                                     benignLikelihoodRatios, numTests)
 
         # generate observations of variant (assumed to be benign) from people with variant
-        self.benignObservations += self.generateObservationsFromTests(benignProbabilities, pathogenicLikelihoodRatios,
+        self.benignObservations = self.generateObservationsFromTests(benignProbabilities, pathogenicLikelihoodRatios,
                                                                 benignLikelihoodRatios, numTests)
 
         # use Poisson distribution to get number of people from this batch with that variant
@@ -470,11 +470,11 @@ def main():
                     endTime = time()
                     #logger.info('center=' + centers[i].name + ' lrpscatter took ' + str(endTime - startTime))
 
-            # combine the centers
-            startTime = time()
-            combineCenter(centers[i], allCentersList[i], year)
-            endTime = time()
-            logger.info('center=' + centers[i].name + ' combineCenter took ' + str(endTime - startTime))
+                # combine the centers
+                startTime = time()
+                combineCenter(centers[i], allCentersList[i], year)
+                endTime = time()
+                logger.info('center=' + centers[i].name + ' combineCenter took ' + str(endTime - startTime))
             # plot graphs for combined center in years of interest
             if year in yearsOfInterest:
                 # plot histograms for all centers combined
