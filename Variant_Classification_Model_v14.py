@@ -83,6 +83,60 @@ def calculateSumOfLogs(lrList):
             mySum += math.log(lr, 10)
     return mySum
 
+class simulation:
+    def __init__(self, name, nSmall, nMedium, nLarge, numVariants, p, b, P, B, freq, PSF):
+        self.name = name
+        self.nSmall = nSmall
+        self.nMedium = nMedium
+        self.nLarge = nLarge
+        self.numVariants = numVariants
+        self.p = p
+        self.b = b
+        self.P = P
+        self.B = B
+        self.freq = freq
+        self.PSF = PSF
+        self.smallCenters = list()
+        self.mediumCenters = list()
+        self.largeCenters = list()
+        self.centerListList = [self.smallCenters, self.mediumCenters, self.largeCenters]
+        # initialize all centers
+        for i in range(nSmall):
+            self.smallCenters.append(testCenter(name='small_' + str(i),
+                                                initialSize=15000,
+                                                testsPerYear=3000,
+                                                numVariants=numVariants))
+        for i in range(nMedium):
+            self.mediumCenters.append(testCenter(name='medium_' + str(i),
+                                                 initialSize=150000,
+                                                 testsPerYear=30000,
+                                                 numVariants=numVariants))
+        for i in range(nLarge):
+            self.largeCenters.append(testCenter(name='large_' + str(i),
+                                                initialSize=1000000,
+                                                testsPerYear=450000,
+                                                numVariants=numVariants))
+
+        self.allCenters = testCenter(name='all',
+                                initialSize=0,
+                                testsPerYear=0,
+                                numVariants=numVariants)
+
+        for centers in self.centerListList:
+            for center in centers:
+                center.runSimulation(p, b, P, B, freq, PSF, center.initialSize)
+                combineCenter(center, self.allCenters, 0, numVariants)
+
+    def run(self, years):
+        # run simulation over years
+        for year in range(1, years+1):
+            # run simulations at each center for subsequent years
+            for centers in self.centerListList:
+                for center in centers:
+                    center.runSimulation(self.p, self.b, self.P, self.B, self.freq, self.PSF, center.testsPerYear)
+                    combineCenter(center, self.allCenters, year, self.numVariants)
+
+
 class testCenter:
     def __init__(self, name, initialSize, testsPerYear, numVariants):
         self.name = name
@@ -423,57 +477,18 @@ def main():
     freq = 1e-5 # this is the frequency of the variant we are interested in
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
-    numVariants = 10
-
-    # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
-    smallCenters = list()
-    nSmall = 4
-    mediumCenters = list()
-    nMedium = 2
-    largeCenters = list()
-    nLarge = 1
-    centerListList  = [smallCenters, mediumCenters, largeCenters]
-
-    # initialize all centers
-    for i in range(nSmall):
-        smallCenters.append(testCenter('small_' + str(i), 15000, 3000, numVariants))
-    for i in range(nMedium):
-        mediumCenters.append(testCenter('medium_' + str(i), 150000, 30000, numVariants))
-    for i in range(nLarge):
-        largeCenters.append(testCenter('large_' + str(i), 1000000, 450000, numVariants))
-
-    allCenters = testCenter('all', 0, 0, numVariants)
-
-    for centers in centerListList:
-        for center in centers:
-            center.runSimulation(p, b, P, B, freq, PSF, center.initialSize)
-            combineCenter(center, allCenters, 0, numVariants)
-
-    # run simulation over years
     yearsOfInterest = [1, 5, 10, 15, 20]
 
-    for year in range(1, years+1):
-        # run simulations at each center for subsequent years
-        for centers in centerListList:
+
+    # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
+    mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, p=p, b=b, P=P, B=B, freq=freq, PSF=PSF)
+    mySimulation.run(years)
+    for year in yearsOfInterest:
+        for centers in mySimulation.centerListList:
             for center in centers:
-                center.runSimulation(p, b, P, B, freq, PSF, center.testsPerYear)
-                combineCenter(center, allCenters, year, numVariants)
+                plotLRPScatter(center, freq, year, thresholds)
+        plotLRPScatter(mySimulation.allCenters, freq, year, thresholds)
 
-
-            # combine the centers
-            # plot graphs for combined center in years of interest
-                if year in yearsOfInterest:
-                    # plot histograms for all centers combined
-                    #plotLRPHist([allCenters], freq, year, thresholds)
-                    plotLRPScatter(center, freq, year, thresholds)
-                    # plot scatter plots for all centers combined
-                    plotLRPScatter(allCenters, freq, year, thresholds)
-
-    '''for centers in centerListList:
-        getStatisticsForSimulation(centers)
-        logger.info('center=' + centers[0].name)
-    
-    getStatisticsForSimulation(allCentersList)'''
 
 
 
