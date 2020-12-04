@@ -231,8 +231,8 @@ def plotLRPScatter(centerSimulations, f, year, thresholds):
     plt.xlabel('year', fontsize=18)
     #plt.title(str(centerName) + '|freq=' + str(f) + '|year=' + str(year))
 
-    #plt.show()
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
+    plt.show()
+    #plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
     plt.close()
 
 
@@ -297,8 +297,8 @@ def plotLRPHist(centerSimulations, f, year, thresholds):
     plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    #plt.show()
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
+    plt.show()
+    #plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
     plt.close()
 
 def findMinMax(myList):
@@ -418,10 +418,10 @@ def main():
     BP = 1 / 2.08 # supporting evidence for benign
     B = {'BS': BS, 'BP': BP}
 
-    years = 20 # how long in future to project (i.e. number of iterations in simulation)
+    years = 10 # how long in future to project (i.e. number of iterations in simulation)
     PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
-    freq = 1e-6 # this is the frequency of the variant we are interested in
-    numSimulations = 10
+    freq = 1e-5 # this is the frequency of the variant we are interested in
+    numSimulations = 5
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
     UWList = list()
@@ -472,11 +472,11 @@ def main():
                 # plot scatter plots for all centers combined
                 plotLRPScatter(allCentersList, freq, year, thresholds)
 
-    for centers in centerListList:
+    '''for centers in centerListList:
         getStatisticsForSimulation(centers)
         logger.info('center=' + centers[0].name)
     
-    getStatisticsForSimulation(allCentersList)
+    getStatisticsForSimulation(allCentersList)'''
 
 
 

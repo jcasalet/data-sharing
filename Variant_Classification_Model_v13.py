@@ -227,7 +227,8 @@ def plotLRPScatter(centerSimulations, f, year, thresholds):
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
 
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
+    plt.show()
+    #plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
     plt.close()
 
 
@@ -279,8 +280,8 @@ def plotLRPHist(centerSimulations, f, year, thresholds):
 
     plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-    plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
+    plt.show()
+    #plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
     plt.close()
 
 def findMinMax(myList):
@@ -402,7 +403,7 @@ def main():
 
     years = 20 # how long in future to project (i.e. number of iterations in simulation)
     PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
-    freq = 1e-6 # this is the frequency of the variant we are interested in
+    freq = 1e-5 # this is the frequency of the variant we are interested in
     numSimulations = 10
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
@@ -430,7 +431,8 @@ def main():
             combineCenter(centers[i], allCentersList[i], 0)
 
         # second, simulate forward in time, add variants to each center's db based on tests per year
-        yearsOfInterest = [1, 5, 10, 15, 20]
+        #yearsOfInterest = [1, 5, 10, 15, 20]
+        yearsOfInterest = [20]
         for year in range(1, years+1):
             # run simulations at each center for subsequent years
             for centers in centerListList:
@@ -454,11 +456,11 @@ def main():
                 # plot scatter plots for all centers combined
                 plotLRPScatter(allCentersList, freq, year, thresholds)
 
-    for centers in centerListList:
+    '''for centers in centerListList:
         getStatisticsForSimulation(centers)
         logger.info('center=' + centers[0].name)
     
-    getStatisticsForSimulation(allCentersList)
+    getStatisticsForSimulation(allCentersList)'''
 
 
 
