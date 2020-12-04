@@ -3,9 +3,10 @@ import numbers
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import math
-from time import time
+import json
 import logging
 import sys
+import os
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -83,19 +84,47 @@ def calculateSumOfLogs(lrList):
             mySum += math.log(lr, 10)
     return mySum
 
+class configuration:
+
+    def __init__(self, configFileName):
+        self.configFileName = configFileName
+
+        if self.configFileName != '' and not os.path.exists(self.configFileName):
+            logger.error('config file ' + self.configFileName + ' does not exist!', file=sys.stderr)
+            sys.exit(1)
+
+        with open(self.configFileName, 'r') as myFile:
+            jsonData = myFile.read()
+        self.data = json.loads(jsonData)
+
+
 class simulation:
-    def __init__(self, name, nSmall, nMedium, nLarge, numVariants, p, b, P, B, freq, PSF):
+    def __init__(self, name, nSmall, nMedium, nLarge, numVariants, freq, config):
         self.name = name
         self.nSmall = nSmall
         self.nMedium = nMedium
         self.nLarge = nLarge
         self.numVariants = numVariants
-        self.p = p
-        self.b = b
-        self.P = P
-        self.B = B
         self.freq = freq
-        self.PSF = PSF
+
+        self.p = [config['p0'], config['p1_PM3'], config['p2_PM6'], config['p3_BS2'], config['p4_BP2'], config['p5_BP5'],
+             config['p6_PP1'], config['p7_PS2'], config['p8_BS4']]
+
+        self.b = [config['b0'], config['b1_PM3'], config['b2_PM6'], config['b3_BS2'], config['b4_BP2'], config['b5_BP5'],
+             config['b6_PP1'], config['b7_PS2'], config['b8_BS4']]
+
+        self.P = {'PS': config['PS'], 'PM': config['PM'], 'PP': config['PP']}
+        self.B = {'BS': config['BS'], 'BP': config['BP']}
+
+        self.PSF = config['PSF']
+
+        self.smallInitialSize = config['smallInitialSize']
+        self.smallTestsPerYear = config['smallTestsPerYear']
+        self.mediumInitialSize = config['mediumInitialSize']
+        self.mediumTestsPerYear = config['mediumTestsPerYear']
+        self.largeInitialSize = config['largeInitialSize']
+        self.largeTestsPerYear = config['largeTestsPerYear']
+
         self.smallCenters = list()
         self.mediumCenters = list()
         self.largeCenters = list()
@@ -103,18 +132,18 @@ class simulation:
         # initialize all centers
         for i in range(nSmall):
             self.smallCenters.append(testCenter(name='small_' + str(i),
-                                                initialSize=15000,
-                                                testsPerYear=3000,
+                                                initialSize=self.smallInitialSize,
+                                                testsPerYear=self.smallTestsPerYear,
                                                 numVariants=numVariants))
         for i in range(nMedium):
             self.mediumCenters.append(testCenter(name='medium_' + str(i),
-                                                 initialSize=150000,
-                                                 testsPerYear=30000,
+                                                 initialSize=self.mediumInitialSize,
+                                                 testsPerYear=self.mediumTestsPerYear,
                                                  numVariants=numVariants))
         for i in range(nLarge):
             self.largeCenters.append(testCenter(name='large_' + str(i),
-                                                initialSize=1000000,
-                                                testsPerYear=450000,
+                                                initialSize=self.largeInitialSize,
+                                                testsPerYear=self.largeTestsPerYear,
                                                 numVariants=numVariants))
 
         self.allCenters = testCenter(name='all',
@@ -124,7 +153,7 @@ class simulation:
 
         for centers in self.centerListList:
             for center in centers:
-                center.runSimulation(p, b, P, B, freq, PSF, center.initialSize)
+                center.runSimulation(self.p, self.b, self.P, self.B, freq, self.PSF, center.initialSize)
                 combineCenter(center, self.allCenters, 0, numVariants)
 
     def run(self, years):
@@ -436,52 +465,17 @@ def combineCenter(center, allCenters, year, numVariants):
 
 
 def main():
-    ### gene specific probablities for laboratory observations of pathogenic variants
-    p0 = 0 # placeholder
-    p1_PM3 = 0  # probability case with a variant has a pathogenic variant in trans - only non-zero for recessive
-    p2_PM6 = 0.007  # probability case is assumed de novo
-    p3_BS2 = 0  # probabilty a case is seen in a healthy individual - only informative for very high penetrance
-    p4_BP2 = 0.001  # probability a case is in trans (AD) or in cis (AD and AR) with a pathogenic variant
-    p5_BP5 = 0.0001  # probability a case has an alternate molecular explanation
-    p6_PP1 = 0.2  # probility of cosegregation supporting pathogenicity
-    p7_PS2 = 0.003  # probabilty case is proven de novo
-    p8_BS4 = 0.0001  # probibility of strong cosegregation against pathogenicity
-    p = [p0, p1_PM3, p2_PM6, p3_BS2, p4_BP2, p5_BP5, p6_PP1, p7_PS2, p8_BS4]
-
-    ### gene specific probablities for pathogenic observations of benign variats
-    b0 = 0 # placeholder
-    b1_PM3 = 0  # probability case with a variant has a pathogenic variant in trans - only non-zero for recessive
-    b2_PM6 = 0.007  # probability case is assumed de novo
-    b3_BS2 = 0  # probabilty a case is seen in a healthy individual - only informative for very high penetrance
-    b4_BP2 = 0.008  # probability a case is in trans (AD) or in cis (AD and AR) with a pathogenic variant
-    b5_BP5 = 0.07  # probability a case has an alternate molecular explanation
-    b6_PP1 = 0.01  # probility of cosegregation supporting pathogenicity (have bc and a benign brca1 variant; mom also
-    # has bc and inherited that brca1 variant from mom; similarly path variants will get benign evidence)
-    b7_PS2 = 0.003  # probabilty case is proven de novo
-    b8_BS4 = 0.1  # probibility of strong cosegregation against pathogenicity
-    b = [b0, b1_PM3, b2_PM6, b3_BS2, b4_BP2, b5_BP5, b6_PP1, b7_PS2, b8_BS4]
-
-    # if you add up all the numbers, it's 30-40% which are VUS - they may be off  - we'll know after getting the data
-
-    # straight from sean's paper
-    PS = 18.7 # strong evidence for pathogenic
-    PM = 4.3 # moderate evidence for pathogenic
-    PP = 2.08 # supporting evidence for pathogenic
-    P = {'PS': PS, 'PM': PM, 'PP': PP}
-    BS = 1 / 18.7 # string evidence for benign
-    BP = 1 / 2.08 # supporting evidence for benign
-    B = {'BS': BS, 'BP': BP}
 
     years = 20 # how long in future to project (i.e. number of iterations in simulation)
-    PSF = 2  #pathogenic selection factor, clinicians select patients whom they think have pathogenic variant
     freq = 1e-5 # this is the frequency of the variant we are interested in
     thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
 
     yearsOfInterest = [1, 5, 10, 15, 20]
 
-
     # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
-    mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, p=p, b=b, P=P, B=B, freq=freq, PSF=PSF)
+    config = configuration('/Users/jcasaletto/PycharmProjects/data-sharing/conf.json')
+    #mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, p=p, b=b, P=P, B=B, freq=freq, PSF=PSF)
+    mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, freq=freq, config=config.data)
     mySimulation.run(years)
     for year in yearsOfInterest:
         for centers in mySimulation.centerListList:
