@@ -28,5 +28,9 @@
     	"PP": 2.08,
     	"BS": 0.053475935828877004,
     	"BP": 0.4807692307692307,
-    	"PSF": 2
+    	"PSF": 2,
+	"benignThreshold": -1.256958152560932,
+	"likelyBenignThreshold": -3,
+	"likelyPathogenicThreshold": 1.256958152560932,
+	"pathogenicThreshold": 2.0
 }

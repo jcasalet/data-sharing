@@ -31,10 +31,18 @@ def prod(theList):
         result *= theList[i]
     return result
 
-def rpois(num, lam):
+def rpois(num, lam, seed):
+    if seed is None:
+        numpy.random.seed()
+    else:
+        numpy.random.seed(seed)
     return numpy.random.poisson(lam, num)
 
-def sample(theList, numSamples, replace):
+def sample(theList, numSamples, replace, seed):
+    if seed is None:
+        numpy.random.seed()
+    else:
+        numpy.random.seed(seed)
     if len(theList) == 0:
         return []
     if numSamples > 1:
@@ -52,10 +60,10 @@ def getRandomUniformPriorLR():
     myRandProbability = numpy.random.uniform(0.1, 0.9, 1)[0]
     return myRandProbability / (1 - myRandProbability)
 
-def sampleEvidenceFromObservations(expectedNum, observations):
+def sampleEvidenceFromObservations(expectedNum, observations, seed):
     # assign random uniform prior LR as first piece of evidence
     initialLR = [getRandomUniformPriorLR()]
-    sampleLRs = sample(observations, int(expectedNum), replace=True)
+    sampleLRs = sample(observations, int(expectedNum), replace=True, seed=seed)
     if len(sampleLRs) == 0:
         return []
     else:
@@ -69,13 +77,13 @@ def getExpectedNumsFromPSF(n, PSF):
     numPathogenic = n - numBenign
     return numBenign, numPathogenic
 
-def sampleNumberOfPeopleWithVariant(n, freq):
+def sampleNumberOfPeopleWithVariant(n, freq, seed):
     # here we're using the poisson dist b/c the sampling process satisfies:
     # 1. variant occurs randomly
     # 2. variant occurs independently
     # 3. variant counts are discrete (e.g. whole numbers only)
     # P(X=x) = lam^x * e^(-lam) / x! (where lam = mean, lam = variance)
-    return sum(rpois(n, freq))
+    return sum(rpois(n, freq, seed))
 
 def calculateSumOfLogs(lrList):
     mySum = 0
@@ -84,7 +92,7 @@ def calculateSumOfLogs(lrList):
             mySum += math.log(lr, 10)
     return mySum
 
-class configuration:
+class Configuration:
 
     def __init__(self, configFileName):
         self.configFileName = configFileName
@@ -98,14 +106,16 @@ class configuration:
         self.data = json.loads(jsonData)
 
 
-class simulation:
-    def __init__(self, name, nSmall, nMedium, nLarge, numVariants, freq, config):
+class Simulation:
+    def __init__(self, name, nSmall, nMedium, nLarge, numVariants, freq, years, seed, config):
         self.name = name
         self.nSmall = nSmall
         self.nMedium = nMedium
         self.nLarge = nLarge
         self.numVariants = numVariants
         self.freq = freq
+        self.years = years
+        self.seed = seed
 
         self.p = [config['p0'], config['p1_PM3'], config['p2_PM6'], config['p3_BS2'], config['p4_BP2'], config['p5_BP5'],
              config['p6_PP1'], config['p7_PS2'], config['p8_BS4']]
@@ -118,6 +128,7 @@ class simulation:
 
         self.PSF = config['PSF']
 
+
         self.smallInitialSize = config['smallInitialSize']
         self.smallTestsPerYear = config['smallTestsPerYear']
         self.mediumInitialSize = config['mediumInitialSize']
@@ -125,53 +136,72 @@ class simulation:
         self.largeInitialSize = config['largeInitialSize']
         self.largeTestsPerYear = config['largeTestsPerYear']
 
+        self.benignThreshold = config['benignThreshold']
+        self.likelyBenignThreshold = config['likelyBenignThreshold']
+        self.likelyPathogenicThreshold = config['likelyPathogenicThreshold']
+        self.pathogenicThreshold = config['pathogenicThreshold']
+
+        self.thresholds = [self.benignThreshold, self.likelyBenignThreshold, 0, self.likelyPathogenicThreshold, self.pathogenicThreshold]
+
         self.smallCenters = list()
         self.mediumCenters = list()
         self.largeCenters = list()
         self.centerListList = [self.smallCenters, self.mediumCenters, self.largeCenters]
         # initialize all centers
         for i in range(nSmall):
-            self.smallCenters.append(testCenter(name='small_' + str(i),
+            self.smallCenters.append(TestCenter(name='small_' + str(i),
                                                 initialSize=self.smallInitialSize,
                                                 testsPerYear=self.smallTestsPerYear,
-                                                numVariants=numVariants))
+                                                numVariants=numVariants,
+                                                seed=self.seed))
         for i in range(nMedium):
-            self.mediumCenters.append(testCenter(name='medium_' + str(i),
+            self.mediumCenters.append(TestCenter(name='medium_' + str(i),
                                                  initialSize=self.mediumInitialSize,
                                                  testsPerYear=self.mediumTestsPerYear,
-                                                 numVariants=numVariants))
+                                                 numVariants=numVariants,
+                                                 seed=self.seed))
         for i in range(nLarge):
-            self.largeCenters.append(testCenter(name='large_' + str(i),
+            self.largeCenters.append(TestCenter(name='large_' + str(i),
                                                 initialSize=self.largeInitialSize,
                                                 testsPerYear=self.largeTestsPerYear,
-                                                numVariants=numVariants))
+                                                numVariants=numVariants,
+                                                seed=self.seed))
 
-        self.allCenters = testCenter(name='all',
+        self.allCenters = TestCenter(name='all',
                                 initialSize=0,
                                 testsPerYear=0,
-                                numVariants=numVariants)
+                                numVariants=numVariants,
+                                seed=self.seed)
 
         for centers in self.centerListList:
             for center in centers:
                 center.runSimulation(self.p, self.b, self.P, self.B, freq, self.PSF, center.initialSize)
                 combineCenter(center, self.allCenters, 0, numVariants)
 
-    def run(self, years):
+    def run(self):
         # run simulation over years
-        for year in range(1, years+1):
+        for year in range(1, self.years+1):
             # run simulations at each center for subsequent years
             for centers in self.centerListList:
                 for center in centers:
                     center.runSimulation(self.p, self.b, self.P, self.B, self.freq, self.PSF, center.testsPerYear)
                     combineCenter(center, self.allCenters, year, self.numVariants)
 
+    def scatter(self, yearsOfInterest):
+        for year in yearsOfInterest:
+            for centers in self.centerListList:
+                for center in centers:
+                    plotLRPScatter(self.name, center, self.freq, year, self.years, self.thresholds)
+            plotLRPScatter(self.name, self.allCenters, self.freq, year, self.years, self.thresholds)
 
-class testCenter:
-    def __init__(self, name, initialSize, testsPerYear, numVariants):
+
+class TestCenter:
+    def __init__(self, name, initialSize, testsPerYear, numVariants, seed):
         self.name = name
         self.initialSize = initialSize
         self.testsPerYear = testsPerYear
         self.numVariants = numVariants
+        self.seed = seed
         self.benignObservations = list()
         self.pathogenicObservations = list()
         self.benignLRs = dict()
@@ -200,17 +230,17 @@ class testCenter:
                                                                     benignLikelihoodRatios, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
-            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, variantFrequency)
+            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, variantFrequency, self.seed)
 
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
             numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, PSF)
 
 
             # generate evidence for observations assumed pathogenic
-            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, self.pathogenicObservations))
+            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, self.pathogenicObservations, self.seed))
 
             # generate evidence for observations assumed benign
-            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, self.benignObservations))
+            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, self.benignObservations, self.seed))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
             self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
@@ -278,12 +308,8 @@ class testCenter:
     def getNumberOfObservations(self):
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
-def plotLRPScatter(center, f, year, thresholds):
+def plotLRPScatter(simulationName, center, f, year, years, thresholds):
     centerName = center.name
-    #pathogenic_y = [0]
-    #pathogenic_y += center.pathogenicLRPs[0:year]
-    #benign_y = [0]
-    #benign_y += center.benignLRPs[0:year]
     pathogenic_y = list()
     benign_y = list()
     for variant in range(center.numVariants):
@@ -297,15 +323,8 @@ def plotLRPScatter(center, f, year, thresholds):
     yearList = [i for i in range(0, year+1)]
     x = yearList
 
-    if f <= 1e-6:
-        plt.xlim(0, 20)
-        plt.ylim(-5, 5)
-    elif f <= 1e-5:
-        plt.xlim(0, 20)
-        plt.ylim(-5, 5)
-    else:
-        plt.xlim(0, 20)
-        plt.ylim(-5, 5)
+    plt.xlim(0, years)
+    plt.ylim(-5, 5)
 
     plt.axhline(y=thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
     plt.axhline(y=thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
@@ -325,7 +344,7 @@ def plotLRPScatter(center, f, year, thresholds):
 
     #plt.show()
     plt.savefig('/Users/jcasaletto/Desktop/RESEARCH/BRIAN/MODEL/PLOTS/' +
-        centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
+                simulationName + '_' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
     plt.close()
 
 
@@ -382,72 +401,6 @@ def plotLRPHist(centerSimulations, f, year, thresholds):
         centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
     plt.close()
 
-def findMinMax(myList):
-    myMin = float('inf')
-    myMax = -float('inf')
-    if len(myList) == 0:
-        return myMin, myMax
-    elif isinstance(myList[0], list):
-        for subList in myList:
-            if len(subList) !=0 and min(subList) < myMin:
-                myMin = min(subList)
-            if len(subList) !=0 and max(subList) > myMax:
-                myMax = max(subList)
-    else:
-        myMin = min(myList)
-        myMax = max(myList)
-
-    return myMin, myMax
-
-def getLStats(LRStats, LRPStats, center):
-    myMin, myMax = findMinMax(center.benignLRs)
-    LRStats['minBenign'].append(center.name + ':' + str(myMin))
-    LRStats['maxBenign'].append(center.name + ':' + str(myMax))
-
-    myMin, myMax = findMinMax(center.pathogenicLRs)
-    LRStats['minPathogenic'].append(center.name + ':' + str(myMin))
-    LRStats['maxPathogenic'].append(center.name + ':' + str(myMax))
-
-    myMin, myMax = findMinMax(center.benignLRPs)
-    LRPStats['minBenign'].append(center.name + ':' + str(myMin))
-    LRPStats['maxBenign'].append(center.name + ':' + str(myMax))
-
-    myMin, myMax = findMinMax(center.pathogenicLRPs)
-    LRPStats['minPathogenic'].append(center.name + ':' + str(myMin))
-    LRPStats['maxPathogenic'].append(center.name + ':' + str(myMax))
-
-def getStatisticsForSimulation(centerList):
-    numObservations = 0
-    numLRs = 0
-    numLRPs = 0
-    LRStats = {'minBenign': list(), 'maxBenign': list(), 'minPathogenic': list(), 'maxPathogenic': list()}
-    LRPStats = {'minBenign': list(), 'maxBenign': list(), 'minPathogenic': list(), 'maxPathogenic': list()}
-
-    for center in centerList:
-        numLRs += center.getNumberOfLRs()
-        numLRPs += len(center.pathogenicLRPs) + len(center.benignLRPs)
-        numObservations += center.getNumberOfObservations()
-        getLStats(LRStats, LRPStats, center)
-        #print('center = ' + center.name)
-        #print('obs = ' + str(center.getNumberOfObservations()))
-        #print('dist of ben obs = ' + str(center.getDistributionOfBenignObservations()))
-        #print('dist of path obs = ' + str(center.getDistributionOfPathogenicObservations()))
-        #print('dist of ben lrs = ' + str(center.getDistributionOfBenignLRs()))
-        #print('dist of path lrs = ' + str(center.getDistributionOfPathogenicLRs()))
-        #print('total number of lrs = ' + str(center.getNumberOfLRs()))
-        #print('observed freq = ' + str(center.getNumberOfLRs()/center.getNumberOfObservations()))
-        #print('ben lrs = ' + str(center.benignLRs))
-        #print('path lrs = ' + str(center.pathogenicLRs))
-        #print('ben lrps = ' + str(center.benignLRPs))
-        #print('path lrps = ' + str(center.pathogenicLRPs))
-
-    #print('num observations = ' + str(numObservations))
-    print('num LRs = ' + str(numLRs))
-    print('num LRPs = ' + str(numLRPs))
-
-    print('numLRs/numObs = ' + str(numLRs/numObservations))
-    #print('LRStats: ' + str(LRStats))
-    #print('LRPStats: ' + str(LRPStats))
 
 def combineCenter(center, allCenters, year, numVariants):
 
@@ -460,30 +413,16 @@ def combineCenter(center, allCenters, year, numVariants):
         allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
         allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
 
-        #allCenters.pathogenicObservations += center.pathogenicObservations
-        #allCenters.benignObservations += center.benignObservations
 
 
 def main():
 
-    years = 20 # how long in future to project (i.e. number of iterations in simulation)
-    freq = 1e-5 # this is the frequency of the variant we are interested in
-    thresholds = [math.log(0.001,10), math.log(1/18.07, 10), 0, math.log(18.07, 10), math.log(100, 10)]
-
-    yearsOfInterest = [1, 5, 10, 15, 20]
-
     # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
-    config = configuration('/Users/jcasaletto/PycharmProjects/data-sharing/conf.json')
-    #mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, p=p, b=b, P=P, B=B, freq=freq, PSF=PSF)
-    mySimulation = simulation('mySim', nSmall=4, nMedium=2, nLarge=1, numVariants=10, freq=freq, config=config.data)
-    mySimulation.run(years)
-    for year in yearsOfInterest:
-        for centers in mySimulation.centerListList:
-            for center in centers:
-                plotLRPScatter(center, freq, year, thresholds)
-        plotLRPScatter(mySimulation.allCenters, freq, year, thresholds)
-
-
+    config = Configuration('/Users/jcasaletto/PycharmProjects/data-sharing/conf.json')
+    mySimulation = Simulation(name='mySim', nSmall=8, nMedium=4, nLarge=5, numVariants=1, freq=1e-5, years=20,
+                              seed=None, config=config.data)
+    mySimulation.run()
+    mySimulation.scatter(yearsOfInterest=[20])
 
 
 if __name__ == "__main__":
