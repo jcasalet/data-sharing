@@ -193,14 +193,18 @@ class Simulation:
                     center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.testsPerYear)
                     combineAllLRsFromCenter(center, self.allCenters, year, self.numVariants)
             calculateAllLRPs(self.allCenters, self.numVariants)
+        # after all the data is generated, calculated the probability of classification for each center
+        for centers in self.centerListList:
+            for center in centers:
+                center.probabilityOfClassification(self.thresholds, self.years)
+        self.allCenters.probabilityOfClassification(self.thresholds, self.years)
 
     def scatter(self, outputDir):
-        numCenters = self.getNumberOfCenters()
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPScatter(self, center, year,  outputDir, numCenters)
-            plotLRPScatter(self, self.allCenters, year, outputDir, numCenters)
+                    plotLRPScatter(self, center, year,  outputDir)
+            plotLRPScatter(self, self.allCenters, year, outputDir)
 
     def hist(self, outputDir):
         for year in [self.years]:
@@ -210,13 +214,10 @@ class Simulation:
             plotLRPHist(self, self.allCenters, year, outputDir)
 
     def prob(self, outputDir):
-        numCenters = self.getNumberOfCenters()
         for centers in self.centerListList:
             for center in centers:
                 plotProbability(self, center, outputDir)
         plotProbability(self, self.allCenters,  outputDir)
-
-
 
 class TestCenter:
     def __init__(self, name, initialSize, testsPerYear, numVariants, seed):
@@ -370,7 +371,7 @@ class TestCenter:
             self.pathogenicProbabilities.append(numPathogenicClassified / self.numVariants)
 
 
-def plotLRPScatter(simulation, center, year, outputDir, numCenters):
+def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
     pathogenic_y = list()
     benign_y = list()
@@ -485,8 +486,6 @@ def plotLRPHist(simulation, center, year, outputDir):
     plt.close()
 
 def plotProbability(simulation, center, outputDir):
-
-    center.probabilityOfClassification(simulation.thresholds, simulation.years)
 
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
