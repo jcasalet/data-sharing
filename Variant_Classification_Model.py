@@ -178,11 +178,25 @@ class Simulation:
         for centers in self.centerListList:
             for center in centers:
                 center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.initialSize)
-                combineAllLRsFromCenter(center, self.allCenters, 0, self.numVariants)
-        calculateAllLRPs(self.allCenters, self.numVariants)
+                self.combineAllLRsFromCenter(center, 0)
+        self.calculateAllLRPs()
 
     def getNumberOfCenters(self):
         return self.nSmall + self.nMedium + self.nLarge
+
+    def calculateAllLRPs(self):
+        for variant in range(self.numVariants):
+            # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
+            self.allCenters.benignLRPs[variant].append(calculateSumOfLogs(self.allCenters.benignLRs[variant]))
+            # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
+            self.allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(self.allCenters.pathogenicLRs[variant]))
+
+    def combineAllLRsFromCenter(self, center, year):
+        for variant in range(self.numVariants):
+            self.allCenters.pathogenicLRs[variant].append([])
+            self.allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
+            self.allCenters.benignLRs[variant].append([])
+            self.allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
 
     def run(self):
         # run simulation over years
@@ -191,8 +205,8 @@ class Simulation:
             for centers in self.centerListList:
                 for center in centers:
                     center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.testsPerYear)
-                    combineAllLRsFromCenter(center, self.allCenters, year, self.numVariants)
-            calculateAllLRPs(self.allCenters, self.numVariants)
+                    self.combineAllLRsFromCenter(center, year)
+            self.calculateAllLRPs()
         # after all the data is generated, calculated the probability of classification for each center
         for centers in self.centerListList:
             for center in centers:
@@ -505,31 +519,6 @@ def plotProbability(simulation, center, outputDir):
     plt.savefig(outputDir + '/' + simulation.name + '_' + center.name + '_y' +
                 str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
     plt.close()
-
-def calculateAllLRPs(allCenters, numVariants):
-    for variant in range(numVariants):
-        # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
-        allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
-        # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
-        allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(allCenters.pathogenicLRs[variant]))
-
-def combineAllLRsFromCenter(center, allCenters, year, numVariants):
-    for variant in range(numVariants):
-        allCenters.pathogenicLRs[variant].append([])
-        allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
-        allCenters.benignLRs[variant].append([])
-        allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
-
-def combineNonZeroFromCenter(center, allCenters, year, numVariants):
-    for variant in range(numVariants):
-        if center.pathogenicLRPs[variant][year] != 0:
-            allCenters.pathogenicLRs[variant].append([])
-            allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
-            allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(allCenters.pathogenicLRs[variant]))
-        if center.benignLRPs[variant][year] != 0:
-            allCenters.benignLRs[variant].append([])
-            allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
-            allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
 
 def parse_args():
     parser = argparse.ArgumentParser()
