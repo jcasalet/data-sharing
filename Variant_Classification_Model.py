@@ -73,7 +73,7 @@ def sampleEvidenceFromObservations(expectedNum, observations, seed):
 
 def getExpectedNumsFromPSF(n, PSF):
     # for now, we've fixed PSF at a number but could in the future make it a distribution from which we sample
-    fractionBenign = 1 / (PSF + 1)
+    fractionBenign = 1.0 / (PSF +1)
     numBenign = int(fractionBenign * n)
     numPathogenic = n - numBenign
     return numBenign, numPathogenic
@@ -131,7 +131,6 @@ class Simulation:
 
         self.PSF = constants['PSF']
 
-
         self.smallInitialSize = constants['smallInitialSize']
         self.smallTestsPerYear = constants['smallTestsPerYear']
         self.mediumInitialSize = constants['mediumInitialSize']
@@ -179,7 +178,11 @@ class Simulation:
         for centers in self.centerListList:
             for center in centers:
                 center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.initialSize)
-                combineCenter(center, self.allCenters, 0, self.numVariants)
+                combineAllLRsFromCenter(center, self.allCenters, 0, self.numVariants)
+        calculateAllLRPs(self.allCenters, self.numVariants)
+
+    def getNumberOfCenters(self):
+        return self.nSmall + self.nMedium + self.nLarge
 
     def run(self):
         # run simulation over years
@@ -188,27 +191,31 @@ class Simulation:
             for centers in self.centerListList:
                 for center in centers:
                     center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.testsPerYear)
-                    combineCenter(center, self.allCenters, year, self.numVariants)
+                    combineAllLRsFromCenter(center, self.allCenters, year, self.numVariants)
+            calculateAllLRPs(self.allCenters, self.numVariants)
 
     def scatter(self, outputDir):
+        numCenters = self.getNumberOfCenters()
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPScatter(self.name, center, self.frequency, year, self.years, self.thresholds, outputDir)
-            plotLRPScatter(self.name, self.allCenters, self.frequency, year, self.years, self.thresholds, outputDir)
+                    plotLRPScatter(self, center, year,  outputDir, numCenters)
+            plotLRPScatter(self, self.allCenters, year, outputDir, numCenters)
 
     def hist(self, outputDir):
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPHist(self.name, center, self.frequency, year, self.thresholds, outputDir)
-            plotLRPHist(self.name, self.allCenters, self.frequency, year, self.thresholds, outputDir)
+                    plotLRPHist(self, center, year, outputDir)
+            plotLRPHist(self, self.allCenters, year, outputDir)
 
     def prob(self, outputDir):
+        numCenters = self.getNumberOfCenters()
         for centers in self.centerListList:
             for center in centers:
-                plotProbability(self.name, center, self.frequency, self.years, self.thresholds, outputDir)
-        plotProbability(self.name, self.allCenters, self.frequency, self.years, self.thresholds, outputDir)
+                plotProbability(self, center, outputDir)
+        plotProbability(self, self.allCenters,  outputDir)
+
 
 
 class TestCenter:
@@ -224,6 +231,8 @@ class TestCenter:
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
         self.pathogenicLRPs = dict()
+        self.benignProbabilities = []
+        self.pathogenicProbabilities = []
 
         # create key for variant in each dict
         for variant in range(numVariants):
@@ -324,7 +333,44 @@ class TestCenter:
     def getNumberOfObservations(self):
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
-def plotLRPScatter(simulationName, center, f, year, years, thresholds, outputDir):
+    def probabilityOfClassification(self, thresholds, years):
+        LB = thresholds[0]
+        B = thresholds[1]
+        neutral = thresholds[2]
+        LP = thresholds[3]
+        P = thresholds[4]
+
+        self.benignProbabilities.append(0)
+        self.pathogenicProbabilities.append(0)
+        for year in range(years):
+            pathogenic_y = list()
+            benign_y = list()
+            for variant in range(self.numVariants):
+                pathogenic_y.append(list())
+                pathogenic_y[variant].append(0)
+                pathogenic_y[variant] += self.pathogenicLRPs[variant][year:year+1]
+                benign_y.append(list())
+                benign_y[variant].append(0)
+                benign_y[variant] += self.benignLRPs[variant][year:year+1]
+
+            numPathogenicClassified = 0
+            numBenignClassified = 0
+
+            for variant in range(self.numVariants):
+                for lrp in pathogenic_y[variant]:
+                    if lrp > P:
+                        numPathogenicClassified += 1
+                        break
+                for lrp in benign_y[variant]:
+                    if lrp < B:
+                        numBenignClassified += 1
+                        break
+
+            self.benignProbabilities.append(numBenignClassified / self.numVariants)
+            self.pathogenicProbabilities.append(numPathogenicClassified / self.numVariants)
+
+
+def plotLRPScatter(simulation, center, year, outputDir, numCenters):
     centerName = center.name
     pathogenic_y = list()
     benign_y = list()
@@ -339,14 +385,14 @@ def plotLRPScatter(simulationName, center, f, year, years, thresholds, outputDir
     yearList = [i for i in range(0, year+1)]
     x = yearList
 
-    plt.xlim(0, years)
+    plt.xlim(0, simulation.years)
     plt.ylim(-5, 5)
 
-    plt.axhline(y=thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
-    plt.axhline(y=thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
+    plt.axhline(y=simulation.thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
         plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
@@ -356,12 +402,18 @@ def plotLRPScatter(simulationName, center, f, year, years, thresholds, outputDir
     plt.xlabel('year', fontsize=18)
     plt.title(centerName)
 
+    nsmall = simulation.nSmall
+    nmedium = simulation.nMedium
+    nlarge = simulation.nLarge
+    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
+
     #plt.show()
-    plt.savefig(outputDir + '/' + simulationName + '_' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_scatter')
+    plt.savefig(outputDir + '/' + simulation.name + '_' + centerName + '_y' + str(year) + '_' +
+                str(simulation.frequency) + '_' + dist + '_lrp_scatter')
     plt.close()
 
 
-def plotLRPHist(simulationName, center, f, year, thresholds, outputDir):
+def plotLRPHist(simulation, center, year, outputDir):
     centerName = center.name
 
     pathogenic_x = [0]
@@ -375,15 +427,19 @@ def plotLRPHist(simulationName, center, f, year, thresholds, outputDir):
             if len(lrList) != 0:
                 benign_x.append(center.benignLRPs[variant][year])
 
+    if centerName == 'all':
+        print('max path x  = ' + str(max(pathogenic_x)))
+        print('min ben x  = ' + str(max(benign_x)))
+
     # TODO calculate the plot limits dynamically, not hard-coded
     ax = plt.figure(figsize=(8, 6)).gca()
-    if f <= 1e-6:
+    '''if f <= 1e-6:
         plt.xlim(-5, 15)
         bins = numpy.arange(-5, 15, 0.5)
         plt.ylim(0, 1)
     elif f <= 1e-5:
-        plt.xlim(-15, 40)
-        bins = numpy.arange(-15, 40, 0.5)
+        plt.xlim(-15, 60)
+        bins = numpy.arange(-15, 60, 0.5)
         plt.ylim(0, 1)
     elif f <= 1e-4:
         plt.xlim(-20, 20)
@@ -393,13 +449,22 @@ def plotLRPHist(simulationName, center, f, year, thresholds, outputDir):
         plt.ylim(0, 80)
     else:
         plt.xlim(-20, 20)
-        plt.ylim(0, 100)
+        plt.ylim(0, 100)'''
 
-    plt.axvline(x=thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
-    plt.axvline(x=thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
+    #lowerLimit = min(min(benign_x), min(pathogenic_x))
+    #upperLimit = max(max(benign_x), max(pathogenic_x))
+    lowerLimit = -10
+    upperLimit = 50
+    plt.xlim(lowerLimit, upperLimit)
+    bins = numpy.arange(lowerLimit, upperLimit, 0.5)
+    plt.ylim(0, 1)
+
+
+    plt.axvline(x=simulation.thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
+    plt.axvline(x=simulation.thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -411,73 +476,61 @@ def plotLRPHist(simulationName, center, f, year, thresholds, outputDir):
     plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     #plt.show()
-    plt.savefig(outputDir + '/' + simulationName + '_' + centerName + '_y' + str(year) + '_' + str(f) + '_lrp_hist')
+    nsmall = simulation.nSmall
+    nmedium = simulation.nMedium
+    nlarge = simulation.nLarge
+    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
+    plt.savefig(outputDir + '/' + simulation.name + '_' + centerName + '_y' + str(year) +
+                '_' + str(simulation.frequency) + '_' + dist + '_lrphist')
     plt.close()
 
-def plotProbability(simulationName, center, f, years, thresholds, outputDir):
+def plotProbability(simulation, center, outputDir):
 
-    benignProbabilities, pathogenicProbabilities = probabilityOfClassification(center, thresholds, years)
+    center.probabilityOfClassification(simulation.thresholds, simulation.years)
 
-    yearList = [i for i in range(0, years + 1)]
-    plt.xlim(0, years)
+    yearList = [i for i in range(0, simulation.years + 1)]
+    plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
-    plt.plot(yearList, pathogenicProbabilities, marker='x', color='red', label='pathogenic')
-    plt.plot(yearList, benignProbabilities, marker='o', color='green', label='benign')
+    plt.plot(yearList, center.pathogenicProbabilities, marker='x', color='red', label='pathogenic')
+    plt.plot(yearList, center.benignProbabilities, marker='o', color='green', label='benign')
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     plt.title(center.name)
     #plt.show()
-    plt.savefig(outputDir + '/' + simulationName + '_' + center.name + '_y' + str(years) + '_' + str(f) + '_probs')
+
+    nsmall = simulation.nSmall
+    nmedium = simulation.nMedium
+    nlarge = simulation.nLarge
+    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
+
+    plt.savefig(outputDir + '/' + simulation.name + '_' + center.name + '_y' +
+                str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
     plt.close()
 
-def probabilityOfClassification(center, thresholds, years):
-    LB = thresholds[0]
-    B = thresholds[1]
-    neutral = thresholds[2]
-    LP = thresholds[3]
-    P = thresholds[4]
+def calculateAllLRPs(allCenters, numVariants):
+    for variant in range(numVariants):
+        # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
+        allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
+        # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
+        allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(allCenters.pathogenicLRs[variant]))
 
-    benignProbabilities = [0]
-    pathogenicProbabilities = [0]
-    for year in range(years):
-        pathogenic_y = list()
-        benign_y = list()
-        for variant in range(center.numVariants):
-            pathogenic_y.append(list())
-            pathogenic_y[variant].append(0)
-            pathogenic_y[variant] += center.pathogenicLRPs[variant][year:year+1]
-            #pathogenic_y[variant] += center.pathogenicLRPs[variant][0:year]
-            benign_y.append(list())
-            benign_y[variant].append(0)
-            benign_y[variant] += center.benignLRPs[variant][year:year+1]
-            #benign_y[variant] += center.benignLRPs[variant][0:year]
-
-        numPathogenicClassified = 0
-        numBenignClassified = 0
-
-        for variant in range(center.numVariants):
-            for lrp in pathogenic_y[variant]:
-                if  lrp > LP:
-                    numPathogenicClassified += 1
-                    break
-            for lrp in benign_y[variant]:
-                if  lrp < LB:
-                    numBenignClassified += 1
-                    break
-
-        benignProbabilities.append(numBenignClassified/center.numVariants)
-        pathogenicProbabilities.append(numPathogenicClassified/center.numVariants)
-
-    return benignProbabilities, pathogenicProbabilities
-
-def combineCenter(center, allCenters, year, numVariants):
+def combineAllLRsFromCenter(center, allCenters, year, numVariants):
     for variant in range(numVariants):
         allCenters.pathogenicLRs[variant].append([])
         allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
-        allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(allCenters.pathogenicLRs[variant]))
         allCenters.benignLRs[variant].append([])
         allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
-        allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
+
+def combineNonZeroFromCenter(center, allCenters, year, numVariants):
+    for variant in range(numVariants):
+        if center.pathogenicLRPs[variant][year] != 0:
+            allCenters.pathogenicLRs[variant].append([])
+            allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
+            allCenters.pathogenicLRPs[variant].append(calculateSumOfLogs(allCenters.pathogenicLRs[variant]))
+        if center.benignLRPs[variant][year] != 0:
+            allCenters.benignLRs[variant].append([])
+            allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
+            allCenters.benignLRPs[variant].append(calculateSumOfLogs(allCenters.benignLRs[variant]))
 
 def parse_args():
     parser = argparse.ArgumentParser()
