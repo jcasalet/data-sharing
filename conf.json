@@ -21,7 +21,7 @@
     		"b3_BS2": 0,
     		"b4_BP2": 0.008,
     		"b5_BP5": 0.07,
-    		"b6_PP1": 0.01,
+			"b6_PP1": 0.01,
     		"b7_PS2": 0.003,
     		"b8_BS4": 0.1,
     		"PS": 18.7,
@@ -29,7 +29,7 @@
     		"PP": 2.08,
     		"BS": 0.053475935828877004,
     		"BP": 0.4807692307692307,
-    		"PSF": 2,
+    		"PSF": 2.0,
 		"benignThreshold": -1.256958152560932,
 		"likelyBenignThreshold": -3,
 		"likelyPathogenicThreshold": 1.256958152560932,
@@ -37,12 +37,12 @@
 	},
 	"simulation": {
 		"name": "mySim",
-		"nSmall": 4,
-		"nMedium": 3,
-		"nLarge": 2,
-		"numVariants": 20,
+		"nSmall": 10,
+		"nMedium": 7,
+		"nLarge": 3,
+		"numVariants": 10000,
 		"frequency": 1e-5,
-		"years": 10,
-		"seed": 0 
+		"years": 5,
+		"seed": 0
 	}
 }
