@@ -246,8 +246,10 @@ class TestCenter:
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
         self.pathogenicLRPs = dict()
-        self.benignProbabilities = []
-        self.pathogenicProbabilities = []
+        self.benignProbabilities = [0]
+        self.pathogenicProbabilities = [0]
+        self.likelyBenignProbabilities = [0]
+        self.likelyPathogenicProbabilities = [0]
 
         # create key for variant in each dict
         for variant in range(numVariants):
@@ -355,8 +357,6 @@ class TestCenter:
         LP = thresholds[3]
         P = thresholds[4]
 
-        self.benignProbabilities.append(0)
-        self.pathogenicProbabilities.append(0)
         for year in range(years):
             pathogenic_y = list()
             benign_y = list()
@@ -383,6 +383,22 @@ class TestCenter:
 
             self.benignProbabilities.append(numBenignClassified / self.numVariants)
             self.pathogenicProbabilities.append(numPathogenicClassified / self.numVariants)
+
+            numLPClassified = 0
+            numLBClassified = 0
+
+            for variant in range(self.numVariants):
+                for lrp in pathogenic_y[variant]:
+                    if lrp > LP:
+                        numLPClassified += 1
+                        break
+                for lrp in benign_y[variant]:
+                    if lrp < LB:
+                        numLBClassified += 1
+                        break
+
+            self.likelyBenignProbabilities.append(numLBClassified / self.numVariants)
+            self.likelyPathogenicProbabilities.append(numLPClassified / self.numVariants)
 
 
 def plotLRPScatter(simulation, center, year, outputDir):
@@ -416,6 +432,7 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
     plt.title(centerName)
+    #plt.legend(loc='upper right')
 
     nsmall = simulation.nSmall
     nmedium = simulation.nMedium
@@ -506,9 +523,13 @@ def plotProbability(simulation, center, outputDir):
     plt.ylim(0, 1)
     plt.plot(yearList, center.pathogenicProbabilities, marker='x', color='red', label='pathogenic')
     plt.plot(yearList, center.benignProbabilities, marker='o', color='green', label='benign')
+    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='x', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, center.likelyBenignProbabilities, marker='o', color='blue', label=' likely benign', linestyle='dashed')
+
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     plt.title(center.name)
+    #plt.legend(loc='upper right')
     #plt.show()
 
     nsmall = simulation.nSmall
