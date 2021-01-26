@@ -6,24 +6,96 @@
 		"mediumTestsPerYear": 30000,
 		"largeInitialSize": 1000000,
 		"largeTestsPerYear": 450000,
-		"p0": 0,
-    		"p1_PM3": 0,
-    		"p2_PM6": 0.007,
-    		"p3_BS2": 0,
-    		"p4_BP2": 0.001,
-    		"p5_BP5": 0.0001,
-    		"p6_PP1": 0.2,
-    		"p7_PS2": 0.003,
-    		"p8_BS4": 0.0001,
-    		"b0": 0,
-    		"b1_PM3": 0,
-    		"b2_PM6": 0.007,
-    		"b3_BS2": 0,
-    		"b4_BP2": 0.008,
-    		"b5_BP5": 0.07,
-			"b6_PP1": 0.01,
-    		"b7_PS2": 0.003,
-    		"b8_BS4": 0.1,
+			"p0": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+			"p1_PM3": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+    		"p2_PM6": {
+				"low": 0.0014,
+				"med": 0.007,
+				"hi": 0.025
+			},
+    		"p3_BS2": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+    		"p4_BP2": {
+				"low": "0.001 * self.frequency",
+				"med": "0.005 * self.frequency",
+				"hi": "0.02 * self.frequency"
+			},
+    		"p5_BP5": {
+				"low": 0.00002,
+				"med": 0.0001,
+				"hi": 0.0021505376
+			},
+    		"p6_PP1": {
+				"low": 0.05,
+				"med": 0.23,
+				"hi": 0.46
+			},
+    		"p7_PS2": {
+				"low": 0.0006,
+				"med": 0.003,
+				"hi": 0.02
+			},
+    		"p8_BS4": {
+				"low": 0.0001,
+				"med": 0.001,
+				"hi": 0.01
+			},
+    		"b0": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+    		"b1_PM3": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+    		"b2_PM6": {
+				"low": 0.0007,
+				"med": 0.007,
+				"hi": 0.01
+			},
+    		"b3_BS2": {
+				"low": 0,
+				"med": 0,
+				"hi": 0
+			},
+    		"b4_BP2": {
+				"low": "self.frequency",
+				"med": "self.frequency",
+				"hi": "self.frequency"
+			},
+    		"b5_BP5": {
+				"low": 0.038,
+				"med": 0.099,
+				"hi": 0.36
+			},
+			"b6_PP1": {
+				"low": 0.005,
+				"med": 0.01,
+				"hi": 0.02
+			},
+    		"b7_PS2": {
+				"low": 0.0001,
+				"med": 0.003,
+				"hi": 0.005
+			},
+    		"b8_BS4": {
+				"low": 0.025,
+				"med": 0.05,
+				"hi": 0.11
+			},
     		"PS": 18.7,
     		"PM": 4.3,
     		"PP": 2.08,
@@ -40,7 +112,7 @@
 		"nSmall": 10,
 		"nMedium": 7,
 		"nLarge": 3,
-		"numVariants": 10000,
+		"numVariants": 10,
 		"frequency": 1e-5,
 		"years": 5,
 		"seed": 0

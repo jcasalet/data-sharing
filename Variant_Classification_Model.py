@@ -120,11 +120,13 @@ class Simulation:
         self.seed = simulation['seed']
 
         constants = config['constants']
-        self.p = [constants['p0'], constants['p1_PM3'], constants['p2_PM6'], constants['p3_BS2'], constants['p4_BP2'],
-                  constants['p5_BP5'], constants['p6_PP1'], constants['p7_PS2'], constants['p8_BS4']]
+        self.p = [constants['p0']['med'], constants['p1_PM3']['med'], constants['p2_PM6']['med'],
+                  constants['p3_BS2']['med'], eval(constants['p4_BP2']['med']), constants['p5_BP5']['med'],
+                  constants['p6_PP1']['med'], constants['p7_PS2']['med'], constants['p8_BS4']['med']]
 
-        self.b = [constants['b0'], constants['b1_PM3'], constants['b2_PM6'], constants['b3_BS2'], constants['b4_BP2'],
-                  constants['b5_BP5'], constants['b6_PP1'], constants['b7_PS2'], constants['b8_BS4']]
+        self.b = [constants['b0']['med'], constants['b1_PM3']['med'], constants['b2_PM6']['med'],
+                  constants['b3_BS2']['med'], eval(constants['b4_BP2']['med']), constants['b5_BP5']['med'],
+                  constants['b6_PP1']['med'], constants['b7_PS2']['med'], constants['b8_BS4']['med']]
 
         self.P = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
         self.B = {'BS': constants['BS'], 'BP': constants['BP']}
@@ -177,7 +179,7 @@ class Simulation:
 
         for centers in self.centerListList:
             for center in centers:
-                center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.initialSize)
+                center.runSimulation(self, center.initialSize)
                 self.combineAllLRsFromCenter(center, 0)
         self.calculateAllLRPs()
 
@@ -204,7 +206,7 @@ class Simulation:
             # run simulations at each center for subsequent years
             for centers in self.centerListList:
                 for center in centers:
-                    center.runSimulation(self.p, self.b, self.P, self.B, self.frequency, self.PSF, center.testsPerYear)
+                    center.runSimulation(self, center.testsPerYear)
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
         # after all the data is generated, calculated the probability of classification for each center
@@ -259,23 +261,21 @@ class TestCenter:
             self.pathogenicLRPs[variant] = list()
 
 
-    def runSimulation(self, pathogenicProbabilities, benignProbabilities, pathogenicLikelihoodRatios,
-                      benignLikelihoodRatios, variantFrequency, PSF, numTests):
-
+    def runSimulation(self, simulation, numTests):
         for variant in range(self.numVariants):
             # generate observations of variant (assumed to be pathogenic) from people with variant
-            self.pathogenicObservations = self.generateObservationsFromTests(pathogenicProbabilities,
-                            pathogenicLikelihoodRatios, benignLikelihoodRatios, numTests)
+            self.pathogenicObservations = self.generateObservationsFromTests(simulation.p,
+                            simulation.P, simulation.B, numTests)
 
             # generate observations of variant (assumed to be benign) from people with variant
-            self.benignObservations = self.generateObservationsFromTests(benignProbabilities, pathogenicLikelihoodRatios,
-                                                                    benignLikelihoodRatios, numTests)
+            self.benignObservations = self.generateObservationsFromTests(simulation.b, simulation.P,
+                                                                    simulation.B, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
-            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, variantFrequency, self.seed)
+            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency, self.seed)
 
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
-            numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, PSF)
+            numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
 
             # generate evidence for observations assumed pathogenic
@@ -545,19 +545,28 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outputDir', help='output directory for PNG plots')
     parser.add_argument('-c', '--confFile', help='path to JSON configuration file')
+    parser.add_argument('-j', '--jobType', help='job type to execute: "simulate" or "analyze"')
     options = parser.parse_args()
     return options
 
 def main():
     confFile = parse_args().confFile
     outputDir = parse_args().outputDir
+    jobType = parse_args().jobType
     # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
     config = Configuration(confFile)
-    mySimulation = Simulation(config=config.data)
-    mySimulation.run()
-    mySimulation.scatter(outputDir=outputDir)
-    mySimulation.hist(outputDir=outputDir)
-    mySimulation.prob(outputDir=outputDir)
+
+    if jobType == 'simulate':
+        print('running simulation')
+        mySimulation = Simulation(config=config.data)
+        mySimulation.run()
+        mySimulation.scatter(outputDir=outputDir)
+        mySimulation.hist(outputDir=outputDir)
+        mySimulation.prob(outputDir=outputDir)
+    elif jobType == 'analyze':
+        print('analyze this')
+    else:
+        print('unknown job type: ' + jobType)
 
 if __name__ == "__main__":
     main()
