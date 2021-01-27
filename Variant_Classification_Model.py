@@ -108,7 +108,7 @@ class Configuration:
 
 
 class Simulation:
-    def __init__(self, config):
+    def __init__(self, config, saType):
         simulation = config['simulation']
         self.name = simulation['name']
         self.nSmall = simulation['nSmall']
@@ -120,13 +120,15 @@ class Simulation:
         self.seed = simulation['seed']
 
         constants = config['constants']
-        self.p = [constants['p0']['med'], constants['p1_PM3']['med'], constants['p2_PM6']['med'],
-                  constants['p3_BS2']['med'], eval(constants['p4_BP2']['med']), constants['p5_BP5']['med'],
-                  constants['p6_PP1']['med'], constants['p7_PS2']['med'], constants['p8_BS4']['med']]
 
-        self.b = [constants['b0']['med'], constants['b1_PM3']['med'], constants['b2_PM6']['med'],
-                  constants['b3_BS2']['med'], eval(constants['b4_BP2']['med']), constants['b5_BP5']['med'],
-                  constants['b6_PP1']['med'], constants['b7_PS2']['med'], constants['b8_BS4']['med']]
+
+        self.p = [constants['p0'][saType], constants['p1_PM3'][saType], constants['p2_PM6'][saType],
+                  constants['p3_BS2'][saType], eval(constants['p4_BP2'][saType]), constants['p5_BP5'][saType],
+                  constants['p6_PP1'][saType], constants['p7_PS2'][saType], constants['p8_BS4'][saType]]
+
+        self.b = [constants['b0'][saType], constants['b1_PM3']['med'], constants['b2_PM6'][saType],
+                  constants['b3_BS2'][saType], eval(constants['b4_BP2'][saType]), constants['b5_BP5'][saType],
+                  constants['b6_PP1'][saType], constants['b7_PS2'][saType], constants['b8_BS4'][saType]]
 
         self.P = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
         self.B = {'BS': constants['BS'], 'BP': constants['BP']}
@@ -209,31 +211,37 @@ class Simulation:
                     center.runSimulation(self, center.testsPerYear)
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
-        # after all the data is generated, calculated the probability of classification for each center
+        # after all the data is generated, calculate the probability of classification for each center
         for centers in self.centerListList:
             for center in centers:
                 center.probabilityOfClassification(self.thresholds, self.years)
         self.allCenters.probabilityOfClassification(self.thresholds, self.years)
 
-    def scatter(self, outputDir):
+    def scatter(self, outputDir, saType):
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPScatter(self, center, year,  outputDir)
-            plotLRPScatter(self, self.allCenters, year, outputDir)
+                    plotLRPScatter(self, center, year,  outputDir, saType)
+            plotLRPScatter(self, self.allCenters, year, outputDir, saType)
 
-    def hist(self, outputDir):
+    def hist(self, outputDir, saType):
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPHist(self, center, year, outputDir)
-            plotLRPHist(self, self.allCenters, year, outputDir)
+                    plotLRPHist(self, center, year, outputDir, saType)
+            plotLRPHist(self, self.allCenters, year, outputDir, saType)
 
-    def prob(self, outputDir):
+    def prob(self, outputDir, saType):
         for centers in self.centerListList:
             for center in centers:
-                plotProbability(self, center, outputDir)
-        plotProbability(self, self.allCenters,  outputDir)
+                plotProbability(self, center, outputDir, saType)
+        plotProbability(self, self.allCenters,  outputDir, saType)
+
+    def save(self, outputDir, saType):
+        for centers in self.centerListList:
+            for center in centers:
+                saveProbability(self, center, outputDir, saType)
+        saveProbability(self, self.allCenters,  outputDir, saType)
 
 class TestCenter:
     def __init__(self, name, initialSize, testsPerYear, numVariants, seed):
@@ -401,7 +409,7 @@ class TestCenter:
             self.likelyPathogenicProbabilities.append(numLPClassified / self.numVariants)
 
 
-def plotLRPScatter(simulation, center, year, outputDir):
+def plotLRPScatter(simulation, center, year, outputDir, saType):
     centerName = center.name
     pathogenic_y = list()
     benign_y = list()
@@ -440,12 +448,12 @@ def plotLRPScatter(simulation, center, year, outputDir):
     dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
 
     #plt.show()
-    plt.savefig(outputDir + '/' + simulation.name + '_' + centerName + '_y' + str(year) + '_' +
+    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + centerName + '_y' + str(year) + '_' +
                 str(simulation.frequency) + '_' + dist + '_lrp_scatter')
     plt.close()
 
 
-def plotLRPHist(simulation, center, year, outputDir):
+def plotLRPHist(simulation, center, year, outputDir, saType):
     centerName = center.name
 
     pathogenic_x = [0]
@@ -512,11 +520,11 @@ def plotLRPHist(simulation, center, year, outputDir):
     nmedium = simulation.nMedium
     nlarge = simulation.nLarge
     dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
-    plt.savefig(outputDir + '/' + simulation.name + '_' + centerName + '_y' + str(year) +
+    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + centerName + '_y' + str(year) +
                 '_' + str(simulation.frequency) + '_' + dist + '_lrphist')
     plt.close()
 
-def plotProbability(simulation, center, outputDir):
+def plotProbability(simulation, center, outputDir, saType):
 
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
@@ -532,14 +540,34 @@ def plotProbability(simulation, center, outputDir):
     #plt.legend(loc='upper right')
     #plt.show()
 
-    nsmall = simulation.nSmall
-    nmedium = simulation.nMedium
-    nlarge = simulation.nLarge
-    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
-    plt.savefig(outputDir + '/' + simulation.name + '_' + center.name + '_y' +
+    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + center.name + '_y' +
                 str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
     plt.close()
+
+def saveProbability(simulation, center, outputDir, saType):
+
+    yearList = [i for i in range(0, simulation.years + 1)]
+    plt.xlim(0, simulation.years)
+    plt.ylim(0, 1)
+    plt.plot(yearList, center.pathogenicProbabilities, marker='x', color='red', label='pathogenic')
+    plt.plot(yearList, center.benignProbabilities, marker='o', color='green', label='benign')
+    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='x', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, center.likelyBenignProbabilities, marker='o', color='blue', label=' likely benign', linestyle='dashed')
+
+    plt.ylabel('probability of classification', fontsize=18)
+    plt.xlabel('year', fontsize=18)
+    plt.title(center.name)
+    #plt.legend(loc='upper right')
+    #plt.show()
+
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
+
+    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + center.name + '_y' +
+                str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
+    plt.close()
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -557,16 +585,24 @@ def main():
     config = Configuration(confFile)
 
     if jobType == 'simulate':
-        print('running simulation')
-        mySimulation = Simulation(config=config.data)
+        print('simulate this!')
+        mySimulation = Simulation(config=config.data, saType='med')
         mySimulation.run()
-        mySimulation.scatter(outputDir=outputDir)
-        mySimulation.hist(outputDir=outputDir)
-        mySimulation.prob(outputDir=outputDir)
+        mySimulation.scatter(outputDir=outputDir, saType='med')
+        mySimulation.hist(outputDir=outputDir, saType='med')
+        mySimulation.prob(outputDir=outputDir, saType='med')
     elif jobType == 'analyze':
-        print('analyze this')
+        print('analyze this!')
+        for t in ['low', 'med', 'hi']:
+            mySimulation = Simulation(config=config.data, saType=t)
+            mySimulation.run()
+            #mySimulation.scatter(outputDir=outputDir, saType=t)
+            #mySimulation.hist(outputDir=outputDir, saType=t)
+            #mySimulation.prob(outputDir=outputDir, saType=t)
+            mySimulation.save(outputDir=outputDir, saType=t)
+
     else:
-        print('unknown job type: ' + jobType)
+        print('whats this?: ' + jobType)
 
 if __name__ == "__main__":
     main()
