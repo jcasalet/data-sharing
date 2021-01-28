@@ -8,6 +8,7 @@ import logging
 import sys
 import os
 import argparse
+import pickle
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -108,8 +109,11 @@ class Configuration:
 
 
 class Simulation:
-    def __init__(self, config, saType):
+    def __init__(self, config, saType, saParam):
         simulation = config['simulation']
+        self.saType = saType
+        self.saParam = saParam
+
         self.name = simulation['name']
         self.nSmall = simulation['nSmall']
         self.nMedium = simulation['nMedium']
@@ -122,13 +126,34 @@ class Simulation:
         constants = config['constants']
 
 
-        self.p = [constants['p0'][saType], constants['p1_PM3'][saType], constants['p2_PM6'][saType],
-                  constants['p3_BS2'][saType], eval(constants['p4_BP2'][saType]), constants['p5_BP5'][saType],
-                  constants['p6_PP1'][saType], constants['p7_PS2'][saType], constants['p8_BS4'][saType]]
+        self.p = {'p0': constants['p0']['med'], 'p1_M3': constants['p1_PM3']['med'], 'p2_PM6': constants['p2_PM6']['med'],
+                  'p3_BS2': constants['p3_BS2']['med'], 'p4_BP2': float(eval(constants['p4_BP2']['med'])),
+                  'p5_BP5': constants['p5_BP5']['med'], 'p6_PP1': constants['p6_PP1']['med'],
+                  'p7_PS2': constants['p7_PS2']['med'], 'p8_BS4': constants['p8_BS4']['med']}
 
-        self.b = [constants['b0'][saType], constants['b1_PM3']['med'], constants['b2_PM6'][saType],
-                  constants['b3_BS2'][saType], eval(constants['b4_BP2'][saType]), constants['b5_BP5'][saType],
-                  constants['b6_PP1'][saType], constants['b7_PS2'][saType], constants['b8_BS4'][saType]]
+
+
+        self.b = {'b0': constants['b0']['med'], 'b1_PM3': constants['b1_PM3']['med'], 'b2_PM6': constants['b2_PM6']['med'],
+                  'b3_BS2': constants['b3_BS2']['med'], 'b4_BP2': float(eval(constants['b4_BP2']['med'])),
+                  'b5_BP5': constants['b5_BP5']['med'], 'b6_PP1': constants['b6_PP1']['med'],
+                  'b7_PS2': constants['b7_PS2']['med'], 'b8_BS4': constants['b8_BS4']['med']}
+
+        # if doing SA, override single parameter value specified in saParam to saType
+        if self.saParam is None:
+            pass
+        elif self.saParam.startswith('p'):
+            if type(constants[self.saParam][self.saType]) is str:
+                self.p[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+            else:
+                self.p[self.saParam] = constants[self.saParam][self.saType]
+        elif self.saParam.startswith('b'):
+            if type(constants[self.saParam][self.saType]) is str:
+                self.b[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+            else:
+                self.b[self.saParam] = constants[self.saParam][self.saType]
+        else:
+            logger.error('unknown saParam: ' + str(self.saParam))
+            sys.exit(1)
 
         self.P = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
         self.B = {'BS': constants['BS'], 'BP': constants['BP']}
@@ -217,31 +242,31 @@ class Simulation:
                 center.probabilityOfClassification(self.thresholds, self.years)
         self.allCenters.probabilityOfClassification(self.thresholds, self.years)
 
-    def scatter(self, outputDir, saType):
+    def scatter(self, outputDir):
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPScatter(self, center, year,  outputDir, saType)
-            plotLRPScatter(self, self.allCenters, year, outputDir, saType)
+                    plotLRPScatter(self, center, year,  outputDir)
+            plotLRPScatter(self, self.allCenters, year, outputDir)
 
-    def hist(self, outputDir, saType):
+    def hist(self, outputDir):
         for year in [self.years]:
             for centers in self.centerListList:
                 for center in centers:
-                    plotLRPHist(self, center, year, outputDir, saType)
-            plotLRPHist(self, self.allCenters, year, outputDir, saType)
+                    plotLRPHist(self, center, year, outputDir)
+            plotLRPHist(self, self.allCenters, year, outputDir)
 
-    def prob(self, outputDir, saType):
+    def prob(self, outputDir):
         for centers in self.centerListList:
             for center in centers:
-                plotProbability(self, center, outputDir, saType)
-        plotProbability(self, self.allCenters,  outputDir, saType)
+                plotProbability(self, center, outputDir)
+        plotProbability(self, self.allCenters,  outputDir)
 
-    def save(self, outputDir, saType):
+    def save(self, outputDir):
         for centers in self.centerListList:
             for center in centers:
-                saveProbability(self, center, outputDir, saType)
-        saveProbability(self, self.allCenters,  outputDir, saType)
+                saveProbability(self, center, outputDir)
+        saveProbability(self, self.allCenters,  outputDir)
 
 class TestCenter:
     def __init__(self, name, initialSize, testsPerYear, numVariants, seed):
@@ -272,11 +297,11 @@ class TestCenter:
     def runSimulation(self, simulation, numTests):
         for variant in range(self.numVariants):
             # generate observations of variant (assumed to be pathogenic) from people with variant
-            self.pathogenicObservations = self.generateObservationsFromTests(simulation.p,
+            self.pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
                             simulation.P, simulation.B, numTests)
 
             # generate observations of variant (assumed to be benign) from people with variant
-            self.benignObservations = self.generateObservationsFromTests(simulation.b, simulation.P,
+            self.benignObservations = self.generateBenignObservationsFromTests(simulation.b, simulation.P,
                                                                     simulation.B, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
@@ -298,13 +323,24 @@ class TestCenter:
             # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
             self.pathogenicLRPs[variant].append(calculateSumOfLogs(self.pathogenicLRs[variant]))
 
-    def generateObservationsFromTests(self, c, P, B, n):
+    def generatePathogenicObservationsFromTests(self, c, P, B, n):
         Obs = \
-            [rep(P['PM'], int(c[2] * n)) + rep(B['BP'], int(c[4] * n)) +
-             rep(B['BP'], int(c[5] * n)) + rep(P['PP'], int(c[6] * n)) +
-             rep(P['PS'], int(c[6] * n)) + rep(B['BS'], int(c[7] * n)) +
-             rep(B['BS'], int(c[8] * n)) +
-             rep(1.0, int((1 - (c[2] + c[4] + c[5] + c[6] + c[6] + c[7] + c[8])) * n))]
+            [rep(P['PM'], int(c['p2_PM6'] * n)) + rep(B['BP'], int(c['p4_BP2'] * n)) +
+             rep(B['BP'], int(c['p5_BP5'] * n)) + rep(P['PP'], int(c['p6_PP1'] * n)) +
+             rep(P['PS'], int(c['p6_PP1'] * n)) + rep(B['BS'], int(c['p7_PS2'] * n)) +
+             rep(B['BS'], int(c['p8_BS4'] * n)) +
+             rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + c['p6_PP1'] +
+                                c['p7_PS2'] + c['p8_BS4'])) * n))]
+        return Obs[0]
+
+    def generateBenignObservationsFromTests(self, c, P, B, n):
+        Obs = \
+            [rep(P['PM'], int(c['b2_PM6'] * n)) + rep(B['BP'], int(c['b4_BP2'] * n)) +
+             rep(B['BP'], int(c['b5_BP5'] * n)) + rep(P['PP'], int(c['b6_PP1'] * n)) +
+             rep(P['PS'], int(c['b6_PP1'] * n)) + rep(B['BS'], int(c['b7_PS2'] * n)) +
+             rep(B['BS'], int(c['b8_BS4'] * n)) +
+             rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + c['b6_PP1'] +
+                                c['b7_PS2'] + c['b8_BS4'])) * n))]
         return Obs[0]
 
     def addBenignLRList(self, lrList):
@@ -409,7 +445,7 @@ class TestCenter:
             self.likelyPathogenicProbabilities.append(numLPClassified / self.numVariants)
 
 
-def plotLRPScatter(simulation, center, year, outputDir, saType):
+def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
     pathogenic_y = list()
     benign_y = list()
@@ -442,18 +478,16 @@ def plotLRPScatter(simulation, center, year, outputDir, saType):
     plt.title(centerName)
     #plt.legend(loc='upper right')
 
-    nsmall = simulation.nSmall
-    nmedium = simulation.nMedium
-    nlarge = simulation.nLarge
-    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     #plt.show()
-    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + centerName + '_y' + str(year) + '_' +
+
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.name + '_' + centerName + '_' + str(year) + 'yrs_' +
                 str(simulation.frequency) + '_' + dist + '_lrp_scatter')
     plt.close()
 
 
-def plotLRPHist(simulation, center, year, outputDir, saType):
+def plotLRPHist(simulation, center, year, outputDir):
     centerName = center.name
 
     pathogenic_x = [0]
@@ -516,15 +550,13 @@ def plotLRPHist(simulation, center, year, outputDir, saType):
     plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     #plt.show()
-    nsmall = simulation.nSmall
-    nmedium = simulation.nMedium
-    nlarge = simulation.nLarge
-    dist = str(nsmall) + '_' + str(nmedium) + '_' + str(nlarge)
-    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + centerName + '_y' + str(year) +
-                '_' + str(simulation.frequency) + '_' + dist + '_lrphist')
+
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist')
     plt.close()
 
-def plotProbability(simulation, center, outputDir, saType):
+def plotProbability(simulation, center, outputDir):
 
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
@@ -542,31 +574,19 @@ def plotProbability(simulation, center, outputDir, saType):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
-    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + center.name + '_y' +
-                str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+                center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs')
     plt.close()
 
-def saveProbability(simulation, center, outputDir, saType):
-
-    yearList = [i for i in range(0, simulation.years + 1)]
-    plt.xlim(0, simulation.years)
-    plt.ylim(0, 1)
-    plt.plot(yearList, center.pathogenicProbabilities, marker='x', color='red', label='pathogenic')
-    plt.plot(yearList, center.benignProbabilities, marker='o', color='green', label='benign')
-    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='x', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, center.likelyBenignProbabilities, marker='o', color='blue', label=' likely benign', linestyle='dashed')
-
-    plt.ylabel('probability of classification', fontsize=18)
-    plt.xlabel('year', fontsize=18)
-    plt.title(center.name)
-    #plt.legend(loc='upper right')
-    #plt.show()
+def saveProbability(simulation, center, outputDir):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
-    plt.savefig(outputDir + '/' + saType + '_' + simulation.name + '_' + center.name + '_y' +
-                str(simulation.years) + '_' + str(simulation.frequency) + '_' + dist + '_probs')
-    plt.close()
+
+    outFile = outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+              center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs.dat'
+    with open(outFile, 'wb') as output:
+        pickle.dump(center, output, pickle.HIGHEST_PROTOCOL)
 
 
 def parse_args():
@@ -584,22 +604,26 @@ def main():
     # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
     config = Configuration(confFile)
 
+    types = ['low', 'med', 'hi']
+    parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
+                  "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     if jobType == 'simulate':
         print('simulate this!')
-        mySimulation = Simulation(config=config.data, saType='med')
+        mySimulation = Simulation(config=config.data, saType='med', saParam=None)
         mySimulation.run()
-        mySimulation.scatter(outputDir=outputDir, saType='med')
-        mySimulation.hist(outputDir=outputDir, saType='med')
-        mySimulation.prob(outputDir=outputDir, saType='med')
+        mySimulation.scatter(outputDir=outputDir)
+        mySimulation.hist(outputDir=outputDir)
+        mySimulation.prob(outputDir=outputDir)
     elif jobType == 'analyze':
         print('analyze this!')
-        for t in ['low', 'med', 'hi']:
-            mySimulation = Simulation(config=config.data, saType=t)
-            mySimulation.run()
-            #mySimulation.scatter(outputDir=outputDir, saType=t)
-            #mySimulation.hist(outputDir=outputDir, saType=t)
-            #mySimulation.prob(outputDir=outputDir, saType=t)
-            mySimulation.save(outputDir=outputDir, saType=t)
+        for t in types:
+            for p in parameters:
+                mySimulation = Simulation(config=config.data, saType=t, saParam=p)
+                mySimulation.run()
+                #mySimulation.scatter(outputDir=outputDir)
+                #mySimulation.hist(outputDir=outputDir)
+                mySimulation.prob(outputDir=outputDir)
+                #mySimulation.save(outputDir=outputDir)
 
     else:
         print('whats this?: ' + jobType)
