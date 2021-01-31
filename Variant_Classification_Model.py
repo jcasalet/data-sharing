@@ -33,18 +33,10 @@ def prod(theList):
         result *= theList[i]
     return result
 
-def rpois(num, lam, seed):
-    if seed == 0:
-        numpy.random.seed()
-    else:
-        numpy.random.seed(seed)
+def rpois(num, lam):
     return numpy.random.poisson(lam, num)
 
-def sample(theList, numSamples, replace, seed):
-    if seed == 0:
-        numpy.random.seed()
-    else:
-        numpy.random.seed(seed)
+def sample(theList, numSamples, replace):
     if len(theList) == 0:
         return []
     if numSamples > 1:
@@ -62,10 +54,10 @@ def getRandomUniformPriorLR():
     myRandProbability = numpy.random.uniform(0.1, 0.9, 1)[0]
     return myRandProbability / (1 - myRandProbability)
 
-def sampleEvidenceFromObservations(expectedNum, observations, seed):
+def sampleEvidenceFromObservations(expectedNum, observations):
     # assign random uniform prior LR as first piece of evidence
     initialLR = [getRandomUniformPriorLR()]
-    sampleLRs = sample(observations, int(expectedNum), replace=True, seed=seed)
+    sampleLRs = sample(observations, int(expectedNum), replace=True)
     if len(sampleLRs) == 0:
         return []
     else:
@@ -79,13 +71,13 @@ def getExpectedNumsFromPSF(n, PSF):
     numPathogenic = n - numBenign
     return numBenign, numPathogenic
 
-def sampleNumberOfPeopleWithVariant(n, freq, seed):
+def sampleNumberOfPeopleWithVariant(n, freq):
     # here we're using the poisson dist b/c the sampling process satisfies:
     # 1. variant occurs randomly
     # 2. variant occurs independently
     # 3. variant counts are discrete (e.g. whole numbers only)
     # P(X=x) = lam^x * e^(-lam) / x! (where lam = mean, lam = variance)
-    return sum(rpois(n, freq, seed))
+    return sum(rpois(n, freq))
 
 def calculateSumOfLogs(lrList):
     mySum = 0
@@ -123,6 +115,12 @@ class Simulation:
         self.years = simulation['years']
         self.seed = simulation['seed']
 
+        if self.seed == 0:
+            numpy.random.seed()
+        else:
+            numpy.random.seed(self.seed)
+
+        print('random number for new simulation = ' + str(numpy.random.random()))
         constants = config['constants']
 
 
@@ -183,26 +181,22 @@ class Simulation:
             self.smallCenters.append(TestCenter(name='small_' + str(i),
                                                 initialSize=self.smallInitialSize,
                                                 testsPerYear=self.smallTestsPerYear,
-                                                numVariants=self.numVariants,
-                                                seed=self.seed))
+                                                numVariants=self.numVariants))
         for i in range(self.nMedium):
             self.mediumCenters.append(TestCenter(name='medium_' + str(i),
                                                  initialSize=self.mediumInitialSize,
                                                  testsPerYear=self.mediumTestsPerYear,
-                                                 numVariants=self.numVariants,
-                                                 seed=self.seed))
+                                                 numVariants=self.numVariants))
         for i in range(self.nLarge):
             self.largeCenters.append(TestCenter(name='large_' + str(i),
                                                 initialSize=self.largeInitialSize,
                                                 testsPerYear=self.largeTestsPerYear,
-                                                numVariants=self.numVariants,
-                                                seed=self.seed))
+                                                numVariants=self.numVariants))
 
         self.allCenters = TestCenter(name='all',
                                 initialSize=0,
                                 testsPerYear=0,
-                                numVariants=self.numVariants,
-                                seed=self.seed)
+                                numVariants=self.numVariants)
 
         for centers in self.centerListList:
             for center in centers:
@@ -226,6 +220,25 @@ class Simulation:
             self.allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
             self.allCenters.benignLRs[variant].append([])
             self.allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
+
+    def divide(n, d):
+        res = list()
+        qu = int(n / d)
+        rm = n % d
+        for i in range(d):
+            if i < rm:
+                res.append(qu + 1)
+            else:
+                res.append(qu)
+        return res
+
+    def getStartAndEnd(partitionSizes, threadID):
+        start = 0
+        for i in range(threadID):
+            start += partitionSizes[i]
+        end = start + partitionSizes[threadID]
+
+        return start, end
 
     def run(self):
         # run simulation over years
@@ -269,12 +282,11 @@ class Simulation:
         saveProbability(self, self.allCenters,  outputDir)
 
 class TestCenter:
-    def __init__(self, name, initialSize, testsPerYear, numVariants, seed):
+    def __init__(self, name, initialSize, testsPerYear, numVariants):
         self.name = name
         self.initialSize = initialSize
         self.testsPerYear = testsPerYear
         self.numVariants = numVariants
-        self.seed = seed
         self.benignObservations = list()
         self.pathogenicObservations = list()
         self.benignLRs = dict()
@@ -305,17 +317,17 @@ class TestCenter:
                                                                     simulation.B, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
-            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency, self.seed)
+            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency)
 
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
             numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
 
             # generate evidence for observations assumed pathogenic
-            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, self.pathogenicObservations, self.seed))
+            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, self.pathogenicObservations))
 
             # generate evidence for observations assumed benign
-            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, self.benignObservations, self.seed))
+            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, self.benignObservations))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
             self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
@@ -327,7 +339,7 @@ class TestCenter:
         Obs = \
             [rep(P['PM'], int(c['p2_PM6'] * n)) + rep(B['BP'], int(c['p4_BP2'] * n)) +
              rep(B['BP'], int(c['p5_BP5'] * n)) + rep(P['PP'], int(c['p6_PP1'] * n)) +
-             rep(P['PS'], int(c['p6_PP1'] * n)) + rep(B['BS'], int(c['p7_PS2'] * n)) +
+             rep(P['PS'], int(c['p6_PP1'] * n)) + rep(P['PS'], int(c['p7_PS2'] * n)) +
              rep(B['BS'], int(c['p8_BS4'] * n)) +
              rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + c['p6_PP1'] +
                                 c['p7_PS2'] + c['p8_BS4'])) * n))]
@@ -337,7 +349,7 @@ class TestCenter:
         Obs = \
             [rep(P['PM'], int(c['b2_PM6'] * n)) + rep(B['BP'], int(c['b4_BP2'] * n)) +
              rep(B['BP'], int(c['b5_BP5'] * n)) + rep(P['PP'], int(c['b6_PP1'] * n)) +
-             rep(P['PS'], int(c['b6_PP1'] * n)) + rep(B['BS'], int(c['b7_PS2'] * n)) +
+             rep(P['PS'], int(c['b6_PP1'] * n)) + rep(P['PS'], int(c['b7_PS2'] * n)) +
              rep(B['BS'], int(c['b8_BS4'] * n)) +
              rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + c['b6_PP1'] +
                                 c['b7_PS2'] + c['b8_BS4'])) * n))]
@@ -425,8 +437,8 @@ class TestCenter:
                         numBenignClassified += 1
                         break
 
-            self.benignProbabilities.append(numBenignClassified / self.numVariants)
-            self.pathogenicProbabilities.append(numPathogenicClassified / self.numVariants)
+            self.benignProbabilities.append(float(numBenignClassified) / float(self.numVariants))
+            self.pathogenicProbabilities.append(float(numPathogenicClassified) / float(self.numVariants))
 
             numLPClassified = 0
             numLBClassified = 0
@@ -441,9 +453,15 @@ class TestCenter:
                         numLBClassified += 1
                         break
 
-            self.likelyBenignProbabilities.append(numLBClassified / self.numVariants)
-            self.likelyPathogenicProbabilities.append(numLPClassified / self.numVariants)
+            self.likelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
+            self.likelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
 
+    def getYearNProbabilities(self, n):
+        lbYearN = self.likelyBenignProbabilities[n]
+        bYearN = self.benignProbabilities[n]
+        lpYearN = self.likelyPathogenicProbabilities[n]
+        pYearN = self.likelyBenignProbabilities[n]
+        return lbYearN, bYearN, lpYearN, pYearN
 
 def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
@@ -482,8 +500,8 @@ def plotLRPScatter(simulation, center, year, outputDir):
 
     #plt.show()
 
-    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.name + '_' + centerName + '_' + str(year) + 'yrs_' +
-                str(simulation.frequency) + '_' + dist + '_lrp_scatter')
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' +
+                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrp_scatter')
     plt.close()
 
 
@@ -552,7 +570,7 @@ def plotLRPHist(simulation, center, year, outputDir):
     #plt.show()
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
-    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
                 centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist')
     plt.close()
 
@@ -574,7 +592,7 @@ def plotProbability(simulation, center, outputDir):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
-    plt.savefig(outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
                 center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs')
     plt.close()
 
@@ -583,7 +601,7 @@ def saveProbability(simulation, center, outputDir):
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
 
-    outFile = outputDir + '/' + simulation.saType + '_' + simulation.saParam + '_' + simulation.name + '_' + \
+    outFile = outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
               center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs.dat'
     with open(outFile, 'wb') as output:
         pickle.dump(center, output, pickle.HIGHEST_PROTOCOL)
@@ -616,6 +634,7 @@ def main():
         mySimulation.prob(outputDir=outputDir)
     elif jobType == 'analyze':
         print('analyze this!')
+        allLRPs = dict()
         for t in types:
             for p in parameters:
                 mySimulation = Simulation(config=config.data, saType=t, saParam=p)
@@ -624,7 +643,8 @@ def main():
                 #mySimulation.hist(outputDir=outputDir)
                 mySimulation.prob(outputDir=outputDir)
                 #mySimulation.save(outputDir=outputDir)
-
+                allLRPs[t + '_' + p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
+        print(str(allLRPs))
     else:
         print('whats this?: ' + jobType)
 
