@@ -339,9 +339,8 @@ class TestCenter:
         Obs = \
             [rep(P['PM'], int(c['p2_PM6'] * n)) + rep(B['BP'], int(c['p4_BP2'] * n)) +
              rep(B['BP'], int(c['p5_BP5'] * n)) + rep(P['PP'], int(c['p6_PP1'] * n)) +
-             rep(P['PS'], int(c['p6_PP1'] * n)) + rep(P['PS'], int(c['p7_PS2'] * n)) +
-             rep(B['BS'], int(c['p8_BS4'] * n)) +
-             rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + c['p6_PP1'] +
+             rep(P['PS'], int(c['p7_PS2'] * n)) + rep(B['BS'], int(c['p8_BS4'] * n)) +
+             rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] +
                                 c['p7_PS2'] + c['p8_BS4'])) * n))]
         return Obs[0]
 
@@ -349,9 +348,8 @@ class TestCenter:
         Obs = \
             [rep(P['PM'], int(c['b2_PM6'] * n)) + rep(B['BP'], int(c['b4_BP2'] * n)) +
              rep(B['BP'], int(c['b5_BP5'] * n)) + rep(P['PP'], int(c['b6_PP1'] * n)) +
-             rep(P['PS'], int(c['b6_PP1'] * n)) + rep(P['PS'], int(c['b7_PS2'] * n)) +
-             rep(B['BS'], int(c['b8_BS4'] * n)) +
-             rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + c['b6_PP1'] +
+             rep(P['PS'], int(c['b7_PS2'] * n)) + rep(B['BS'], int(c['b8_BS4'] * n)) +
+             rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5']  + c['b6_PP1'] +
                                 c['b7_PS2'] + c['b8_BS4'])) * n))]
         return Obs[0]
 
@@ -606,6 +604,33 @@ def saveProbability(simulation, center, outputDir):
     with open(outFile, 'wb') as output:
         pickle.dump(center, output, pickle.HIGHEST_PROTOCOL)
 
+def runAnalysis(types, parameters, config, outputDir):
+    allLRPs = dict()
+    for t in types:
+        allLRPs[t] = dict()
+        for p in parameters:
+            mySimulation = Simulation(config=config.data, saType=t, saParam=p)
+            mySimulation.run()
+            # mySimulation.scatter(outputDir=outputDir)
+            # mySimulation.hist(outputDir=outputDir)
+            mySimulation.prob(outputDir=outputDir)
+            # mySimulation.save(outputDir=outputDir)
+            allLRPs[t][p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
+    return allLRPs
+
+def printAllLRPs(types, parameters, allLRPs):
+    indices = {0:'LB', 1:'B', 2: 'LP', 3:'P'}
+    print('parameters: ', end=' ')
+    for p in parameters:
+        print(p, end=',')
+    for t in types:
+        print(t)
+        for i in indices:
+            print(t + '_' + indices[i] + ': ', end=',')
+            for p in parameters:
+                print(allLRPs[t][p][i], end=' ', flush=True)
+            print()
+        print()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -625,6 +650,7 @@ def main():
     types = ['low', 'med', 'hi']
     parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
                   "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
+    #parameters = ["b7_PS2", "p2_PM6"]
     if jobType == 'simulate':
         print('simulate this!')
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
@@ -634,17 +660,8 @@ def main():
         mySimulation.prob(outputDir=outputDir)
     elif jobType == 'analyze':
         print('analyze this!')
-        allLRPs = dict()
-        for t in types:
-            for p in parameters:
-                mySimulation = Simulation(config=config.data, saType=t, saParam=p)
-                mySimulation.run()
-                #mySimulation.scatter(outputDir=outputDir)
-                #mySimulation.hist(outputDir=outputDir)
-                mySimulation.prob(outputDir=outputDir)
-                #mySimulation.save(outputDir=outputDir)
-                allLRPs[t + '_' + p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
-        print(str(allLRPs))
+        allLRPs = runAnalysis(types, parameters, config, outputDir)
+        printAllLRPs(types, parameters, allLRPs)
     else:
         print('whats this?: ' + jobType)
 
