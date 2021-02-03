@@ -86,6 +86,27 @@ def calculateSumOfLogs(lrList):
             mySum += math.log(lr, 10)
     return mySum
 
+
+def divide(n, d):
+   res = list()
+   qu = int(n/d)
+   rm = n%d
+   for i in range(d):
+       if i < rm:
+           res.append(qu + 1)
+       else:
+           res.append(qu)
+   return res
+
+def getStartAndEnd(partitionSizes, threadID):
+    start = 0
+    for i in range(threadID):
+        start += partitionSizes[i]
+    end = start + partitionSizes[threadID]
+
+    return start, end
+
+
 class Configuration:
 
     def __init__(self, configFileName):
@@ -307,6 +328,12 @@ class TestCenter:
 
 
     def runSimulation(self, simulation, numTests):
+        # TODO: this is where we can add parallelism
+        # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
+        # that's how many variants each thread will run simulation for
+        # put the steps to append to LRs and LRPs outside this loop in an "update()" call?
+
+        #numVariants = divide(self.numVariants, numThreads)
         for variant in range(self.numVariants):
             # generate observations of variant (assumed to be pathogenic) from people with variant
             self.pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
