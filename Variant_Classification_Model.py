@@ -9,6 +9,8 @@ import sys
 import os
 import argparse
 import pickle
+from multiprocessing import Process, Queue, cpu_count
+
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -134,7 +136,8 @@ class Simulation:
         self.numVariants = simulation['numVariants']
         self.frequency = simulation['frequency']
         self.years = simulation['years']
-        self.seed = simulation['seed']
+        self.seed = int(simulation['seed'])
+        self.numThreads = simulation['numThreads']
 
         if self.seed == 0:
             numpy.random.seed()
@@ -221,7 +224,24 @@ class Simulation:
 
         for centers in self.centerListList:
             for center in centers:
-                center.runSimulation(self, center.initialSize)
+                plrs = Queue()
+                blrs = Queue()
+                plrps = Queue()
+                blrps = Queue()
+                processList = list()
+                for i in range(self.numThreads):
+                    p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, plrs,
+                                                                   blrs, plrps, blrps))
+                    p.start()
+                    processList.append(p)
+                for i in range(self.numThreads):
+                    center.pathogenicLRs.update(plrs.get())
+                    center.benignLRs.update(blrs.get())
+                    center.pathogenicLRPs.update(plrps.get())
+                    center.benignLRPs.update(blrps.get())
+                for i in range(self.numThreads):
+                    processList[i].join()
+                #center.runSimulation(self, center.initialSize)
                 self.combineAllLRsFromCenter(center, 0)
         self.calculateAllLRPs()
 
@@ -267,7 +287,21 @@ class Simulation:
             # run simulations at each center for subsequent years
             for centers in self.centerListList:
                 for center in centers:
-                    center.runSimulation(self, center.testsPerYear)
+                    plrs = Queue()
+                    blrs = Queue()
+                    plrps = Queue()
+                    blrps = Queue()
+                    processList = list()
+                    for i in range(self.numThreads):
+                        p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i,
+                                                                       plrs,blrs, plrps, blrps))
+                        p.start()
+                        processList.append(p)
+                    for i in range(self.numThreads):
+                        self.myUpdate(center, plrs.get(), blrs.get(), plrps.get(), blrps.get())
+                    for i in range(self.numThreads):
+                        processList[i].join()
+                    #center.runSimulation(self, center.testsPerYear)
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
         # after all the data is generated, calculate the probability of classification for each center
@@ -275,6 +309,17 @@ class Simulation:
             for center in centers:
                 center.probabilityOfClassification(self.thresholds, self.years)
         self.allCenters.probabilityOfClassification(self.thresholds, self.years)
+
+    def myUpdate(self, center, plrs, blrs, plrps, blrps):
+        for p in plrs:
+            center.pathogenicLRs[p].append(plrs[p][0])
+        for b in blrs:
+            center.benignLRs[b].append(blrs[b][0])
+        for p in plrps:
+            center.pathogenicLRPs[p].append(plrps[p][0])
+        for b in blrps:
+            center.benignLRPs[b].append(blrps[b][0])
+
 
     def scatter(self, outputDir):
         for year in [self.years]:
@@ -308,8 +353,6 @@ class TestCenter:
         self.initialSize = initialSize
         self.testsPerYear = testsPerYear
         self.numVariants = numVariants
-        self.benignObservations = list()
-        self.pathogenicObservations = list()
         self.benignLRs = dict()
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
@@ -327,20 +370,33 @@ class TestCenter:
             self.pathogenicLRPs[variant] = list()
 
 
-    def runSimulation(self, simulation, numTests):
+    def runSimulation(self, simulation, numTests, numThreads, threadID, plrs, blrs, plrps, blrps):
+    #def runSimulation(self, simulation, numTests):
         # TODO: this is where we can add parallelism
         # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
         # that's how many variants each thread will run simulation for
         # put the steps to append to LRs and LRPs outside this loop in an "update()" call?
 
-        #numVariants = divide(self.numVariants, numThreads)
-        for variant in range(self.numVariants):
+        numVariants = divide(self.numVariants, numThreads)
+        start, end = getStartAndEnd(numVariants, threadID)
+        pathogenicLRs = dict()
+        benignLRs = dict()
+        pathogenicLRPs = dict()
+        benignLRPs = dict()
+
+        #for variant in range(self.numVariants):
+        for variant in range(start, end):
+            pathogenicLRs[variant] = list()
+            benignLRs[variant] = list()
+            pathogenicLRPs[variant] = list()
+            benignLRPs[variant] = list()
+
             # generate observations of variant (assumed to be pathogenic) from people with variant
-            self.pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
+            pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
                             simulation.P, simulation.B, numTests)
 
             # generate observations of variant (assumed to be benign) from people with variant
-            self.benignObservations = self.generateBenignObservationsFromTests(simulation.b, simulation.P,
+            benignObservations = self.generateBenignObservationsFromTests(simulation.b, simulation.P,
                                                                     simulation.B, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
@@ -349,18 +405,22 @@ class TestCenter:
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
             numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
-
             # generate evidence for observations assumed pathogenic
-            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, self.pathogenicObservations))
+            pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations))
 
             # generate evidence for observations assumed benign
-            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, self.benignObservations))
+            benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
-            self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
+            benignLRPs[variant].append(calculateSumOfLogs(benignLRs[variant]))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
-            self.pathogenicLRPs[variant].append(calculateSumOfLogs(self.pathogenicLRs[variant]))
+            pathogenicLRPs[variant].append(calculateSumOfLogs(pathogenicLRs[variant]))
+
+        plrs.put(pathogenicLRs)
+        plrps.put(pathogenicLRPs)
+        blrs.put(benignLRs)
+        blrps.put(benignLRPs)
 
     def generatePathogenicObservationsFromTests(self, c, P, B, n):
         Obs = \
@@ -513,8 +573,10 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
-        plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
-        plt.plot(x, benign_y[variant], marker='o', color='green', label='benign', alpha=1.0/(2+variant))
+        #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
+        #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign', alpha=1.0/(2+variant))
+        plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
+        plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)

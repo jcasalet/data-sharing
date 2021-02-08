@@ -110,11 +110,12 @@
 	"simulation": {
 		"name": "mySim",
 		"nSmall": 10,
-		"nMedium": 7,
+		"nMedium": 5,
 		"nLarge": 3,
 		"numVariants": 10,
 		"frequency": 1e-5,
 		"years": 5,
-		"seed": 0
+		"seed": 1,
+		"numThreads": 2
 	}
 }
