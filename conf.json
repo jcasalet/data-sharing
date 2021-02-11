@@ -115,7 +115,7 @@
 		"numVariants": 10,
 		"frequency": 1e-5,
 		"years": 5,
-		"seed": 1,
+		"seed": 0,
 		"numThreads": 2
 	}
 }

@@ -224,24 +224,17 @@ class Simulation:
 
         for centers in self.centerListList:
             for center in centers:
-                plrs = Queue()
-                blrs = Queue()
-                plrps = Queue()
-                blrps = Queue()
+                '''q = Queue()
                 processList = list()
                 for i in range(self.numThreads):
-                    p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, plrs,
-                                                                   blrs, plrps, blrps))
+                    p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, q))
                     p.start()
                     processList.append(p)
                 for i in range(self.numThreads):
-                    center.pathogenicLRs.update(plrs.get())
-                    center.benignLRs.update(blrs.get())
-                    center.pathogenicLRPs.update(plrps.get())
-                    center.benignLRPs.update(blrps.get())
+                    self.myUpdate(center, q.get())
                 for i in range(self.numThreads):
-                    processList[i].join()
-                #center.runSimulation(self, center.initialSize)
+                    processList[i].join()'''
+                center.runSimulation(self, center.initialSize)
                 self.combineAllLRsFromCenter(center, 0)
         self.calculateAllLRPs()
 
@@ -287,21 +280,19 @@ class Simulation:
             # run simulations at each center for subsequent years
             for centers in self.centerListList:
                 for center in centers:
-                    plrs = Queue()
-                    blrs = Queue()
-                    plrps = Queue()
-                    blrps = Queue()
+                    '''q = Queue()
                     processList = list()
                     for i in range(self.numThreads):
-                        p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i,
-                                                                       plrs,blrs, plrps, blrps))
+                        p = Process(target=center.runSimulation, args=(self, center.testsPerYear, self.numThreads, i,q))
                         p.start()
                         processList.append(p)
                     for i in range(self.numThreads):
-                        self.myUpdate(center, plrs.get(), blrs.get(), plrps.get(), blrps.get())
+                        x = q.get()
+                        print('x = ' + str(x))
+                        self.myUpdate(center, x)
                     for i in range(self.numThreads):
-                        processList[i].join()
-                    #center.runSimulation(self, center.testsPerYear)
+                        processList[i].join()'''
+                    center.runSimulation(self, center.testsPerYear)
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
         # after all the data is generated, calculate the probability of classification for each center
@@ -310,14 +301,22 @@ class Simulation:
                 center.probabilityOfClassification(self.thresholds, self.years)
         self.allCenters.probabilityOfClassification(self.thresholds, self.years)
 
-    def myUpdate(self, center, plrs, blrs, plrps, blrps):
+    def myUpdate(self, center, q):
+        plrs = q[0]
+        plrps = q[1]
+        blrs = q[2]
+        blrps = q[3]
         for p in plrs:
+            #print('plrs[p] = ' + str(plrs[p]))
             center.pathogenicLRs[p].append(plrs[p][0])
         for b in blrs:
+            #print('blrs[b] = ' + str(blrs[b]))
             center.benignLRs[b].append(blrs[b][0])
         for p in plrps:
+            #print('plrps[p] = ' + str(plrps[p]))
             center.pathogenicLRPs[p].append(plrps[p][0])
         for b in blrps:
+            #print('blrps[b] = ' + str(blrps[b]))
             center.benignLRPs[b].append(blrps[b][0])
 
 
@@ -370,26 +369,26 @@ class TestCenter:
             self.pathogenicLRPs[variant] = list()
 
 
-    def runSimulation(self, simulation, numTests, numThreads, threadID, plrs, blrs, plrps, blrps):
-    #def runSimulation(self, simulation, numTests):
+    #def runSimulation(self, simulation, numTests, numThreads, threadID, q):
+    def runSimulation(self, simulation, numTests):
         # TODO: this is where we can add parallelism
         # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
         # that's how many variants each thread will run simulation for
         # put the steps to append to LRs and LRPs outside this loop in an "update()" call?
 
-        numVariants = divide(self.numVariants, numThreads)
+        '''numVariants = divide(self.numVariants, numThreads)
         start, end = getStartAndEnd(numVariants, threadID)
         pathogenicLRs = dict()
         benignLRs = dict()
         pathogenicLRPs = dict()
-        benignLRPs = dict()
+        benignLRPs = dict()'''
 
-        #for variant in range(self.numVariants):
-        for variant in range(start, end):
+        for variant in range(self.numVariants):
+            '''for variant in range(start, end):
             pathogenicLRs[variant] = list()
             benignLRs[variant] = list()
             pathogenicLRPs[variant] = list()
-            benignLRPs[variant] = list()
+            benignLRPs[variant] = list()'''
 
             # generate observations of variant (assumed to be pathogenic) from people with variant
             pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
@@ -406,21 +405,18 @@ class TestCenter:
             numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
             # generate evidence for observations assumed pathogenic
-            pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations))
+            self.pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations))
 
             # generate evidence for observations assumed benign
-            benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations))
+            self.benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
-            benignLRPs[variant].append(calculateSumOfLogs(benignLRs[variant]))
+            self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
 
             # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
-            pathogenicLRPs[variant].append(calculateSumOfLogs(pathogenicLRs[variant]))
+            self.pathogenicLRPs[variant].append(calculateSumOfLogs(self.pathogenicLRs[variant]))
 
-        plrs.put(pathogenicLRs)
-        plrps.put(pathogenicLRPs)
-        blrs.put(benignLRs)
-        blrps.put(benignLRPs)
+        #q.put([pathogenicLRs, pathogenicLRPs, benignLRs, benignLRPs])
 
     def generatePathogenicObservationsFromTests(self, c, P, B, n):
         Obs = \
