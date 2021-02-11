@@ -629,7 +629,7 @@ def plotLRPHist(simulation, center, year, outputDir):
     #lowerLimit = min(min(benign_x), min(pathogenic_x))
     #upperLimit = max(max(benign_x), max(pathogenic_x))
     lowerLimit = -10
-    upperLimit = 50
+    upperLimit = 20
     plt.xlim(lowerLimit, upperLimit)
     bins = numpy.arange(lowerLimit, upperLimit, 0.5)
     plt.ylim(0, 1)
@@ -717,6 +717,23 @@ def printAllLRPs(types, parameters, allLRPs):
             print()
         print()
 
+def saveAllLRPs(types, parameters, allLRPs, outputDir):
+    fileName = outputDir + '/allLRPs.csv'
+    indices = {0:'LB', 1:'B', 2: 'LP', 3:'P'}
+    with open(fileName, 'w') as f:
+        print('parameters: ', end=' ', file=f)
+        for p in parameters:
+            print(p, end=',', file=f)
+        for t in types:
+            print(t, file=f)
+            for i in indices:
+                print(t + '_' + indices[i] + ': ', end=',', file=f)
+                for p in parameters:
+                    print(allLRPs[t][p][i], end=' ', flush=True, file=f)
+                print(file=f)
+            print(file=f)
+    f.close()
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outputDir', help='output directory for PNG plots')
@@ -746,9 +763,9 @@ def main():
     elif jobType == 'analyze':
         print('analyze this!')
         allLRPs = runAnalysis(types, parameters, config, outputDir)
-        printAllLRPs(types, parameters, allLRPs)
+        saveAllLRPs(types, parameters, allLRPs, outputDir)
     else:
-        print('whats this?: ' + jobType)
+        print('whats this?: ' + str(jobType))
 
 if __name__ == "__main__":
     main()
