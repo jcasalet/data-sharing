@@ -305,8 +305,6 @@ class Simulation:
     def myUpdate(self, center, q):
         plrs = q[0]
         blrs = q[1]
-        print('plrs = ' + str(plrs))
-        print('blrs = ' + str(blrs))
         for p in plrs:
             center.pathogenicLRs[p].append(plrs[p][0])
         for b in blrs:
@@ -657,8 +655,6 @@ def plotLRPHist(simulation, center, year, outputDir):
 
 def plotProbability(simulation, center, outputDir):
 
-    print(center.pathogenicProbabilities)
-    print(center.benignProbabilities)
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
