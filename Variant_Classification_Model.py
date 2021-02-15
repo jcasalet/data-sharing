@@ -36,11 +36,11 @@ def prod(theList):
     return result
 
 def rpois(num, lam):
-    numpy.random.seed()
+    #numpy.random.seed()
     return numpy.random.poisson(lam, num)
 
 def sample(theList, numSamples, replace):
-    numpy.random.seed()
+    #numpy.random.seed()
     if len(theList) == 0:
         return []
     if numSamples > 1:
@@ -55,7 +55,7 @@ def rep(elt, num):
 
 def getRandomUniformPriorLR():
     # the purpose of this method is to return an initial in-silico prediction for the variant to bootstrap the variant LR
-    numpy.random.seed()
+    #numpy.random.seed()
     myRandProbability = numpy.random.uniform(0.1, 0.9, 1)[0]
     return myRandProbability / (1 - myRandProbability)
 
@@ -142,10 +142,10 @@ class Simulation:
         self.seed = int(simulation['seed'])
         self.numThreads = simulation['numThreads']
 
-        if self.seed == 0:
+        '''if self.seed == 0:
             numpy.random.seed()
         else:
-            numpy.random.seed(self.seed)
+            numpy.random.seed(self.seed)'''
 
         print('random number for new simulation = ' + str(numpy.random.random()))
         constants = config['constants']
@@ -379,6 +379,7 @@ class TestCenter:
         #pathogenicLRPs = dict()
         #benignLRPs = dict()
 
+
         #for variant in range(self.numVariants):
         for variant in range(start, end):
             pathogenicLRs[variant] = list()
@@ -406,6 +407,9 @@ class TestCenter:
             # generate evidence for observations assumed benign
             benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations))
 
+            # JC I put the steps to update the benignLRPs and pathogenicLRPs in the myUpdate() call b/c those calls
+            # need ALL of the LRs (current and previous years), not just the current year which is what is available
+            # here
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
             #self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
 
@@ -565,10 +569,10 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
-        #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
-        #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign', alpha=1.0/(2+variant))
-        plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
-        plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
+        plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
+        plt.plot(x, benign_y[variant], marker='o', color='green', label='benign', alpha=1.0/(2+variant))
+        #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
+        #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
@@ -699,20 +703,6 @@ def runAnalysis(types, parameters, config, outputDir):
             allLRPs[t][p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
     return allLRPs
 
-def printAllLRPs(types, parameters, allLRPs):
-    indices = {0:'LB', 1:'B', 2: 'LP', 3:'P'}
-    print('parameters: ', end=' ')
-    for p in parameters:
-        print(p, end=',')
-    for t in types:
-        print(t)
-        for i in indices:
-            print(t + '_' + indices[i] + ': ', end=',')
-            for p in parameters:
-                print(allLRPs[t][p][i], end=' ', flush=True)
-            print()
-        print()
-
 def saveAllLRPs(types, parameters, allLRPs, outputDir):
     fileName = outputDir + '/allLRPs.csv'
     indices = {0:'LB', 1:'B', 2: 'LP', 3:'P'}
@@ -749,6 +739,13 @@ def main():
     parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
                   "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     #parameters = ["b7_PS2", "p2_PM6"]
+
+    seed = int(config.data['simulation']['seed'])
+
+    if seed == 0:
+        numpy.random.seed()
+    else:
+        numpy.random.seed(seed)
     if jobType == 'simulate':
         print('simulate this!')
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
