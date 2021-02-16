@@ -569,10 +569,11 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
-        plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic', alpha=1.0/(3+variant))
-        plt.plot(x, benign_y[variant], marker='o', color='green', label='benign', alpha=1.0/(2+variant))
-        #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
-        #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
+        if variant % 10 == 0:
+            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
+            #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
+            #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
@@ -662,10 +663,10 @@ def plotProbability(simulation, center, outputDir):
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
-    plt.plot(yearList, center.pathogenicProbabilities, marker='x', color='red', label='pathogenic')
-    plt.plot(yearList, center.benignProbabilities, marker='o', color='green', label='benign')
-    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='x', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, center.likelyBenignProbabilities, marker='o', color='blue', label=' likely benign', linestyle='dashed')
+    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
+    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
