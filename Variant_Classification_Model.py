@@ -35,34 +35,38 @@ def prod(theList):
         result *= theList[i]
     return result
 
-def rpois(num, lam):
+def rpois(num, lam, rng):
     #numpy.random.seed()
-    return numpy.random.poisson(lam, num)
+    #return numpy.random.poisson(lam, num)
+    return rng.poisson(lam, num)
 
-def sample(theList, numSamples, replace):
+def sample(theList, numSamples, replace, rng):
     #numpy.random.seed()
     if len(theList) == 0:
         return []
     if numSamples > 1:
-        return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
+        #return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
+        return list(rng.choice(a=theList, size=numSamples, replace=replace))
     elif numSamples == 1:
-        return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
+        #return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
+        return list(rng.choice(a=theList, size=numSamples, replace=replace))
     else:
         return []
 
 def rep(elt, num):
     return [elt for i in range(num)]
 
-def getRandomUniformPriorLR():
+def getRandomUniformPriorLR(rng):
     # the purpose of this method is to return an initial in-silico prediction for the variant to bootstrap the variant LR
     #numpy.random.seed()
-    myRandProbability = numpy.random.uniform(0.1, 0.9, 1)[0]
+    #myRandProbability = numpy.random.uniform(0.1, 0.9, 1)[0]
+    myRandProbability = rng.uniform(0.1, 0.9, 1)[0]
     return myRandProbability / (1 - myRandProbability)
 
-def sampleEvidenceFromObservations(expectedNum, observations):
+def sampleEvidenceFromObservations(expectedNum, observations, rng):
     # assign random uniform prior LR as first piece of evidence
-    initialLR = [getRandomUniformPriorLR()]
-    sampleLRs = sample(observations, int(expectedNum), replace=True)
+    initialLR = [getRandomUniformPriorLR(rng)]
+    sampleLRs = sample(observations, int(expectedNum), replace=True, rng=rng)
     if len(sampleLRs) == 0:
         return []
     else:
@@ -76,13 +80,13 @@ def getExpectedNumsFromPSF(n, PSF):
     numPathogenic = n - numBenign
     return numBenign, numPathogenic
 
-def sampleNumberOfPeopleWithVariant(n, freq):
+def sampleNumberOfPeopleWithVariant(n, freq, rng):
     # here we're using the poisson dist b/c the sampling process satisfies:
     # 1. variant occurs randomly
     # 2. variant occurs independently
     # 3. variant counts are discrete (e.g. whole numbers only)
     # P(X=x) = lam^x * e^(-lam) / x! (where lam = mean, lam = variance)
-    return sum(rpois(n, freq))
+    return sum(rpois(n, freq, rng))
 
 def calculateSumOfLogs(lrList):
     mySum = 0
@@ -230,7 +234,9 @@ class Simulation:
                 q = Queue()
                 processList = list()
                 for i in range(self.numThreads):
-                    p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, q))
+                    rng = numpy.random.default_rng(self.seed + i * centers.index(center))
+                    p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, q,
+                                                                   rng))
                     p.start()
                     processList.append(p)
                 for i in range(self.numThreads):
@@ -286,7 +292,9 @@ class Simulation:
                     q = Queue()
                     processList = list()
                     for i in range(self.numThreads):
-                        p = Process(target=center.runSimulation, args=(self, center.testsPerYear, self.numThreads, i,q))
+                        rng = numpy.random.default_rng(self.seed + i*year*centers.index(center))
+                        p = Process(target=center.runSimulation, args=(self, center.testsPerYear, self.numThreads, i,q,
+                                                                       rng))
                         p.start()
                         processList.append(p)
                     for i in range(self.numThreads):
@@ -309,7 +317,6 @@ class Simulation:
             center.pathogenicLRs[p].append(plrs[p][0])
         for b in blrs:
             center.benignLRs[b].append(blrs[b][0])
-
         for p in plrs:
             center.pathogenicLRPs[p].append(calculateSumOfLogs(center.pathogenicLRs[p]))
         for b in blrs:
@@ -365,7 +372,7 @@ class TestCenter:
             self.pathogenicLRPs[variant] = list()
 
 
-    def runSimulation(self, simulation, numTests, numThreads, threadID, q):
+    def runSimulation(self, simulation, numTests, numThreads, threadID, q, rng):
     #def runSimulation(self, simulation, numTests):
         # TODO: this is where we can add parallelism
         # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
@@ -378,7 +385,6 @@ class TestCenter:
         benignLRs = dict()
         #pathogenicLRPs = dict()
         #benignLRPs = dict()
-
 
         #for variant in range(self.numVariants):
         for variant in range(start, end):
@@ -396,16 +402,16 @@ class TestCenter:
                                                                     simulation.B, numTests)
 
             # use Poisson distribution to get number of people from this batch with that variant
-            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency)
+            numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency, rng)
 
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
             numExpectedBenign, numExpectedPathogenic = getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
             # generate evidence for observations assumed pathogenic
-            pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations))
+            pathogenicLRs[variant].append(sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations, rng))
 
             # generate evidence for observations assumed benign
-            benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations))
+            benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations, rng))
 
             # JC I put the steps to update the benignLRPs and pathogenicLRPs in the myUpdate() call b/c those calls
             # need ALL of the LRs (current and previous years), not just the current year which is what is available
@@ -689,12 +695,12 @@ def saveProbability(simulation, center, outputDir):
     with open(outFile, 'wb') as output:
         pickle.dump(center, output, pickle.HIGHEST_PROTOCOL)
 
-def runAnalysis(types, parameters, config, outputDir):
+def runAnalysis(types, parameters, config, outputDir, rng):
     allLRPs = dict()
     for t in types:
         allLRPs[t] = dict()
         for p in parameters:
-            mySimulation = Simulation(config=config.data, saType=t, saParam=p)
+            mySimulation = Simulation(config=config.data, saType=t, saParam=p, rng=rng)
             mySimulation.run()
             # mySimulation.scatter(outputDir=outputDir)
             # mySimulation.hist(outputDir=outputDir)
@@ -740,12 +746,6 @@ def main():
                   "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     #parameters = ["b7_PS2", "p2_PM6"]
 
-    seed = int(config.data['simulation']['seed'])
-
-    if seed == 0:
-        numpy.random.seed()
-    else:
-        numpy.random.seed(seed)
     if jobType == 'simulate':
         print('simulate this!')
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
