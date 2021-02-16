@@ -146,12 +146,6 @@ class Simulation:
         self.seed = int(simulation['seed'])
         self.numThreads = simulation['numThreads']
 
-        '''if self.seed == 0:
-            numpy.random.seed()
-        else:
-            numpy.random.seed(self.seed)'''
-
-        print('random number for new simulation = ' + str(numpy.random.random()))
         constants = config['constants']
 
 
@@ -234,7 +228,7 @@ class Simulation:
                 q = Queue()
                 processList = list()
                 for i in range(self.numThreads):
-                    rng = numpy.random.default_rng(self.seed + i * centers.index(center))
+                    rng = numpy.random.default_rng(self.seed + (i+1) * (centers.index(center)+1))
                     p = Process(target=center.runSimulation, args=(self, center.initialSize, self.numThreads, i, q,
                                                                    rng))
                     p.start()
@@ -292,7 +286,7 @@ class Simulation:
                     q = Queue()
                     processList = list()
                     for i in range(self.numThreads):
-                        rng = numpy.random.default_rng(self.seed + i*year*centers.index(center))
+                        rng = numpy.random.default_rng(self.seed + (i+1)*(year+1)*(centers.index(center) + 1))
                         p = Process(target=center.runSimulation, args=(self, center.testsPerYear, self.numThreads, i,q,
                                                                        rng))
                         p.start()
