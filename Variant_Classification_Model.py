@@ -695,12 +695,12 @@ def saveProbability(simulation, center, outputDir):
     with open(outFile, 'wb') as output:
         pickle.dump(center, output, pickle.HIGHEST_PROTOCOL)
 
-def runAnalysis(types, parameters, config, outputDir, rng):
+def runAnalysis(types, parameters, config, outputDir):
     allLRPs = dict()
     for t in types:
         allLRPs[t] = dict()
         for p in parameters:
-            mySimulation = Simulation(config=config.data, saType=t, saParam=p, rng=rng)
+            mySimulation = Simulation(config=config.data, saType=t, saParam=p)
             mySimulation.run()
             # mySimulation.scatter(outputDir=outputDir)
             # mySimulation.hist(outputDir=outputDir)
