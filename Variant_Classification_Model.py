@@ -569,11 +569,19 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
-        if variant % 10 == 0:
+        if center.numVariants <= 10:
             plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
             plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
-            #plt.plot(x, pathogenic_y[variant], marker='x', color='red', label='pathogenic')
-            #plt.plot(x, benign_y[variant], marker='o', color='green', label='benign')
+        elif center.numVariants <= 100 and variant % 10 == 0:
+            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
+        elif center.numVariants <= 1000 and variant % 100 == 0:
+            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')  # , alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='green', label='benign')  # , alpha=(1.0+variant)/(3+variant))
+        else:
+            if variant % 1000 == 0:
+                plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+                plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
