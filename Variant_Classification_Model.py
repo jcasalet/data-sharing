@@ -556,7 +556,7 @@ class TestCenter:
                 for i in indices:
                     print(t + '_' + indices[i] + ': ', end=',', file=f)
                     for p in parameters:
-                        print(self.[t][p][i], end=' ', flush=True, file=f)
+                        print(self.allLRPs[t][p][i], end=' ', flush=True, file=f)
                     print(file=f)
                 print(file=f)
         f.close()
