@@ -544,6 +544,23 @@ class TestCenter:
         pYearN = self.likelyBenignProbabilities[n]
         return lbYearN, bYearN, lpYearN, pYearN
 
+    def saveLRPs(self, types, parameters, outputDir):
+        fileName = outputDir + '/' + self.name + '_LRPs.csv'
+        indices = {0: 'LB', 1: 'B', 2: 'LP', 3: 'P'}
+        with open(fileName, 'w') as f:
+            print('parameters: ', end=' ', file=f)
+            for p in parameters:
+                print(p, end=',', file=f)
+            for t in types:
+                print(t, file=f)
+                for i in indices:
+                    print(t + '_' + indices[i] + ': ', end=',', file=f)
+                    for p in parameters:
+                        print(self.[t][p][i], end=' ', flush=True, file=f)
+                    print(file=f)
+                print(file=f)
+        f.close()
+
 def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
     pathogenic_y = list()
@@ -731,9 +748,9 @@ def saveAllLRPs(types, parameters, allLRPs, outputDir):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--outputDir', help='output directory for PNG plots')
-    parser.add_argument('-c', '--confFile', help='path to JSON configuration file')
-    parser.add_argument('-j', '--jobType', help='job type to execute: "simulate" or "analyze"')
+    parser.add_argument('-o', '--outputDir', help='output directory for PNG plots', required=True)
+    parser.add_argument('-c', '--confFile', help='path to JSON configuration file', required=True)
+    parser.add_argument('-j', '--jobType', help='job type to execute: "simulate" or "analyze"', required=True)
     options = parser.parse_args()
     return options
 

@@ -39,7 +39,7 @@
     		"p6_PP1": {
 				"low": 0.05,
 				"med": 0.23,
-				"hi": 0.46
+				"hi": 0.67
 			},
     		"p7_PS2": {
 				"low": 0.0006,
@@ -49,7 +49,7 @@
     		"p8_BS4": {
 				"low": 0.0001,
 				"med": 0.001,
-				"hi": 0.01
+				"hi": 0.17
 			},
     		"b0": {
 				"low": 0,
@@ -84,7 +84,7 @@
 			"b6_PP1": {
 				"low": 0.005,
 				"med": 0.01,
-				"hi": 0.02
+				"hi": 0.0625
 			},
     		"b7_PS2": {
 				"low": 0.0001,
@@ -94,7 +94,7 @@
     		"b8_BS4": {
 				"low": 0.025,
 				"med": 0.05,
-				"hi": 0.11
+				"hi": 0.4063
 			},
     		"PS": 18.7,
     		"PM": 4.3,
@@ -110,12 +110,12 @@
 	"simulation": {
 		"name": "mySim",
 		"nSmall": 10,
-		"nMedium": 5,
+		"nMedium": 7,
 		"nLarge": 3,
-		"numVariants": 10,
+		"numVariants": 1000,
 		"frequency": 1e-5,
 		"years": 5,
-		"seed": 0,
+		"seed": 18,
 		"numThreads": 2
 	}
 }
