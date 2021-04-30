@@ -686,7 +686,7 @@ def plotProbability(simulation, center, outputDir):
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     #plt.title(center.name)
-    plt.legend(loc='upper left')
+    plt.legend(loc='upper left', prop= {'size': 5} )
     #plt.show()
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
