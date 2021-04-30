@@ -10,6 +10,8 @@ import os
 import argparse
 import pickle
 from multiprocessing import Process, Queue, cpu_count
+import matplotlib.patches as mpatches
+
 
 
 logger = logging.getLogger()
@@ -544,23 +546,6 @@ class TestCenter:
         pYearN = self.likelyBenignProbabilities[n]
         return lbYearN, bYearN, lpYearN, pYearN
 
-    def saveLRPs(self, types, parameters, outputDir):
-        fileName = outputDir + '/' + self.name + '_LRPs.csv'
-        indices = {0: 'LB', 1: 'B', 2: 'LP', 3: 'P'}
-        with open(fileName, 'w') as f:
-            print('parameters: ', end=' ', file=f)
-            for p in parameters:
-                print(p, end=',', file=f)
-            for t in types:
-                print(t, file=f)
-                for i in indices:
-                    print(t + '_' + indices[i] + ': ', end=',', file=f)
-                    for p in parameters:
-                        print(self.allLRPs[t][p][i], end=' ', flush=True, file=f)
-                    print(file=f)
-                print(file=f)
-        f.close()
-
 def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
     pathogenic_y = list()
@@ -587,30 +572,34 @@ def plotLRPScatter(simulation, center, year, outputDir):
 
     for variant in range(center.numVariants):
         if center.numVariants <= 10:
-            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
-            plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
         elif center.numVariants <= 100 and variant % 10 == 0:
-            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
-            plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
         elif center.numVariants <= 1000 and variant % 100 == 0:
-            plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')  # , alpha=(1.0+variant)/(3+variant))
-            plt.plot(x, benign_y[variant], color='green', label='benign')  # , alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')  # , alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, benign_y[variant], color='blue', label='benign')  # , alpha=(1.0+variant)/(3+variant))
         else:
             if variant % 1000 == 0:
-                plt.plot(x, pathogenic_y[variant], color='red', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
-                plt.plot(x, benign_y[variant], color='green', label='benign')#, alpha=(1.0+variant)/(3+variant))
+                plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+                plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
-    plt.title(centerName)
-    #plt.legend(loc='upper right')
+    #plt.title(centerName)
+
+    ax=plt.gca()
+    benignLabel = mpatches.Patch(color='blue', label='benign')
+    pathogenicLabel = mpatches.Patch(color='orange', label='pathogenic')
+    plt.legend(handles=[benignLabel, pathogenicLabel], loc='upper right')
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     #plt.show()
 
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' +
-                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrp_scatter')
+                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrp_scatter', dpi=300)
     plt.close()
 
 
@@ -669,7 +658,8 @@ def plotLRPHist(simulation, center, year, outputDir):
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], density=True, range=(-15, 50), bins=bins)
+    plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], color=['blue', 'orange'], density=True,
+             range=(-15, 50), bins=bins)
 
     plt.xlabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
     plt.ylabel('probability mass', fontsize=18)
@@ -680,7 +670,7 @@ def plotLRPHist(simulation, center, year, outputDir):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
-                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist')
+                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
     plt.close()
 
 def plotProbability(simulation, center, outputDir):
@@ -695,14 +685,15 @@ def plotProbability(simulation, center, outputDir):
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
-    plt.title(center.name)
-    #plt.legend(loc='upper right')
+    #plt.title(center.name)
+    plt.legend(loc='upper left')
     #plt.show()
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
-                center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs')
+                center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
+                dpi=300)
     plt.close()
 
 def saveProbability(simulation, center, outputDir):
