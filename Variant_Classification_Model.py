@@ -589,10 +589,9 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.xlabel('year', fontsize=18)
     #plt.title(centerName)
 
-    ax=plt.gca()
     benignLabel = mpatches.Patch(color='blue', label='benign')
     pathogenicLabel = mpatches.Patch(color='orange', label='pathogenic')
-    plt.legend(handles=[benignLabel, pathogenicLabel], loc='upper right')
+    plt.legend(handles=[benignLabel, pathogenicLabel], loc='lower left')
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
@@ -686,7 +685,7 @@ def plotProbability(simulation, center, outputDir):
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     #plt.title(center.name)
-    plt.legend(loc='upper left', prop= {'size': 5} )
+    plt.legend(loc='upper left', prop= {'size': 8} )
     #plt.show()
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
