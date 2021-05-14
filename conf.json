@@ -93,7 +93,7 @@
 			},
     		"b8_BS4": {
 				"low": 0.025,
-				"med": 0.05,
+				"med": 0.1,
 				"hi": 0.4063
 			},
     		"PS": 18.7,
@@ -109,12 +109,12 @@
 	},
 	"simulation": {
 		"name": "mySim",
-		"nSmall": 10,
-		"nMedium": 7,
-		"nLarge": 3,
-		"numVariants": 1000,
+		"nSmall": 5,
+		"nMedium": 3,
+		"nLarge": 1,
+		"numVariants": 5,
 		"frequency": 1e-5,
-		"years": 5,
+		"years": 2,
 		"seed": 18,
 		"numThreads": 2
 	}
