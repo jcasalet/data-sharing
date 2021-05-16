@@ -305,6 +305,52 @@ class Simulation:
             for center in centers:
                 center.probabilityOfClassification(self.thresholds, self.years)
         self.allCenters.probabilityOfClassification(self.thresholds, self.years)
+        # TODO now that each center has a probability of classification for that year, calculate the
+        # probability of classification of any of the centers (i.e. P(A or B or C or ...))
+        # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
+        self.inclusionExclusionProbability()
+
+    def inclusionExclusionProbability(self):
+        # https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
+        # calculate for each year, store in list or dictionary
+        LB = list()
+        B = list()
+        LP = list()
+        P = list()
+        for center in self.largeCenters:
+            LB.append(center.likelyBenignProbabilities)
+            B.append(center.benignProbabilities)
+            LP.append(center.likelyPathogenicProbabilities)
+            P.append(center.pathogenicProbabilities)
+        for center in self.mediumCenters:
+            LB.append(center.likelyBenignProbabilities)
+            B.append(center.benignProbabilities)
+            LP.append(center.likelyPathogenicProbabilities)
+            P.append(center.pathogenicProbabilities)
+        for center in self.smallCenters:
+            LB.append(center.likelyBenignProbabilities)
+            B.append(center.benignProbabilities)
+            LP.append(center.likelyPathogenicProbabilities)
+            P.append(center.pathogenicProbabilities)
+
+        self.LBanyCenter = [0]
+        self.BanyCenter = [0]
+        self.LPanyCenter = [0]
+        self.PanyCenter = [0]
+        for year in range(self.years):
+            LBprob = 1.0
+            Bprob = 1.0
+            LPprob = 1.0
+            Pprob = 1.0
+            for center in range(len(LB)):
+                LBprob *= (1.0 - LB[center][year])
+                Bprob *= (1.0 - B[center][year])
+                LPprob *= (1.0 - LP[center][year])
+                Pprob *= (1.0 - P[center][year])
+            self.LBanyCenter.append(1 - LBprob)
+            self.BanyCenter.append(1 - Bprob)
+            self.LPanyCenter.append(1 - LPprob)
+            self.PanyCenter.append(1 - Pprob)
 
     def myUpdate(self, center, q):
         plrs = q[0]
@@ -672,6 +718,29 @@ def plotLRPHist(simulation, center, year, outputDir):
                 centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
     plt.close()
 
+def plotAnyCenterProbability(simulation, outputDir):
+
+    yearList = [i for i in range(0, simulation.years + 1)]
+    plt.xlim(0, simulation.years)
+    plt.ylim(0, 1)
+    plt.plot(yearList, simulation.PanyCenter, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, simulation.BanyCenter, marker='.', color='green', label='benign')
+    plt.plot(yearList, simulation.LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, simulation.LBanyCenter, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+
+    plt.ylabel('probability of classification', fontsize=18)
+    plt.xlabel('year', fontsize=18)
+    #plt.title(center.name)
+    #plt.legend(loc='upper left', prop= {'size': 8} )
+    #plt.show()
+
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
+
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
+                "inclusion-exclusion" + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
+                dpi=300)
+    plt.close()
+
 def plotProbability(simulation, center, outputDir):
 
     yearList = [i for i in range(0, simulation.years + 1)]
@@ -763,6 +832,8 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir)
         mySimulation.prob(outputDir=outputDir)
+        plotAnyCenterProbability(mySimulation, outputDir)
+
     elif jobType == 'analyze':
         print('analyze this!')
         allLRPs = runAnalysis(types, parameters, config, outputDir)
