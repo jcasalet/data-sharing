@@ -333,11 +333,11 @@ class Simulation:
             LP.append(center.likelyPathogenicProbabilities)
             P.append(center.pathogenicProbabilities)
 
-        self.LBanyCenter = [0]
-        self.BanyCenter = [0]
-        self.LPanyCenter = [0]
-        self.PanyCenter = [0]
-        for year in range(self.years):
+        self.LBanyCenter = []
+        self.BanyCenter = []
+        self.LPanyCenter = []
+        self.PanyCenter = []
+        for year in range(self.years+1):
             LBprob = 1.0
             Bprob = 1.0
             LPprob = 1.0
