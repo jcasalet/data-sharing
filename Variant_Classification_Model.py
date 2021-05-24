@@ -574,11 +574,11 @@ class TestCenter:
 
             for variant in range(self.numVariants):
                 for lrp in pathogenic_y[variant]:
-                    if lrp > LP:
+                    if lrp > LP and lrp <= P:
                         numLPClassified += 1
                         break
                 for lrp in benign_y[variant]:
-                    if lrp < LB:
+                    if lrp < LB and lrp >= B:
                         numLBClassified += 1
                         break
 
