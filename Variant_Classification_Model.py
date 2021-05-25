@@ -131,56 +131,6 @@ class Configuration:
             jsonData = myFile.read()
         self.data = json.loads(jsonData)
 
-def calculateProbabilityOfUnion(year, subsetByLenDict):
-    # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
-    probabilities = dict()
-    for length in subsetByLenDict:
-        probabilities[length] = {'LB': 0, 'B':0, 'LP': 0, 'P':0}
-        for subset in subsetByLenDict[length]:
-            tempLB = 1.0
-            tempB = 1.0
-            tempLP = 1.0
-            tempP = 1.0
-            for center in subset:
-                tempLB *= center.likelyBenignProbabilities[year]
-                tempB *= center.benignProbabilities[year]
-                tempLP *= center.likelyPathogenicProbabilities[year]
-                tempP *= center.pathogenicProbabilities[year]
-            probabilities[length]['LB'] += tempLB
-            probabilities[length]['B'] += tempB
-            probabilities[length]['LP'] += tempLP
-            probabilities[length]['P'] += tempP
-
-    probabilityUnion = {'LB': 0, 'B': 0, 'LP':0, 'P':0}
-    for length in probabilities:
-        if int(length) % 2 == 1:
-            probabilityUnion['LB'] += probabilities[length]['LB']
-            probabilityUnion['B'] += probabilities[length]['B']
-            probabilityUnion['LP'] += probabilities[length]['LP']
-            probabilityUnion['P'] += probabilities[length]['P']
-        else:
-            probabilityUnion['LB'] -= probabilities[length]['LB']
-            probabilityUnion['B'] -= probabilities[length]['B']
-            probabilityUnion['LP'] -= probabilities[length]['LP']
-            probabilityUnion['P'] -= probabilities[length]['P']
-
-    return probabilityUnion
-
-
-    # {'1':    {'LB': P(LB(a)) + P(LB(b) + P(LB(c)),
-    #           'B': P(B(a)) + P(B(b)) + P(B(c)),
-    #           'LP': P(LP(a)) + P(LP(b)) + P(LP(c))
-    #           'P': P(P(a)) + P(P(b)) + P(P(c))}
-    # '2':      {'LB': P(LB(a))*P(LB(b)) + P(LB(a))*P(LB(c)) + P(LB(b))*P(LB(c)),
-    #           'B': P(B(a))*P(B(b)) + P(B(a))*P(B(c)) + P(B(b))*P(B(c)),
-    #           'LP': P(LP(a))*P(LP(b)) + P(LP(a))*P(LP(c)) + P(LP(b))*P(LP(c)),
-    #           'P': P(P(a))*P(P(b)) + P(P(a))*P(P(c)) + P(P(b))*P(P(c))},
-    #  ...
-    # '20': },
-
-    # {'size': {LB: sum-prod-probs, B: sum-prod-probs, LP: sum-prod-probs, P: sum-prod-probs}
-
-
 
 class Simulation:
     def __init__(self, config, saType, saParam):
@@ -358,7 +308,7 @@ class Simulation:
         # TODO now that each center has a probability of classification for that year, calculate the
         # probability of classification of any of the centers (i.e. P(A or B or C or ...))
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
-        self.inclusionExclusionProbability()
+        #self.inclusionExclusionProbability()
         self.unionProbability()
 
     def unionProbability(self):
@@ -382,11 +332,58 @@ class Simulation:
                 subsetByLenDict[l].append(s)
 
         # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
-        probabilityUnions = []
+        self.probabilityUnions = []
         for year in range(self.years):
-            probabilityUnions.append(calculateProbabilityOfUnion(year, subsetByLenDict))
+            self.probabilityUnions.append(self.calculateProbabilityOfUnion(year, subsetByLenDict))
 
-        print(probabilityUnions)
+        print(self.probabilityUnions)
+
+    def calculateProbabilityOfUnion(self, year, subsetByLenDict):
+        # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
+        probabilities = dict()
+        for length in subsetByLenDict:
+            probabilities[length] = {'LB': 0, 'B': 0, 'LP': 0, 'P': 0}
+            for subset in subsetByLenDict[length]:
+                tempLB = 1.0
+                tempB = 1.0
+                tempLP = 1.0
+                tempP = 1.0
+                for center in subset:
+                    tempLB *= center.likelyBenignProbabilities[year]
+                    tempB *= center.benignProbabilities[year]
+                    tempLP *= center.likelyPathogenicProbabilities[year]
+                    tempP *= center.pathogenicProbabilities[year]
+                probabilities[length]['LB'] += tempLB
+                probabilities[length]['B'] += tempB
+                probabilities[length]['LP'] += tempLP
+                probabilities[length]['P'] += tempP
+
+        probabilityUnion = {'LB': 0, 'B': 0, 'LP': 0, 'P': 0}
+        for length in probabilities:
+            if int(length) % 2 == 1:
+                probabilityUnion['LB'] += probabilities[length]['LB']
+                probabilityUnion['B'] += probabilities[length]['B']
+                probabilityUnion['LP'] += probabilities[length]['LP']
+                probabilityUnion['P'] += probabilities[length]['P']
+            else:
+                probabilityUnion['LB'] -= probabilities[length]['LB']
+                probabilityUnion['B'] -= probabilities[length]['B']
+                probabilityUnion['LP'] -= probabilities[length]['LP']
+                probabilityUnion['P'] -= probabilities[length]['P']
+
+        return probabilityUnion
+        # {'1':    {'LB': P(LB(a)) + P(LB(b) + P(LB(c)),
+        #           'B': P(B(a)) + P(B(b)) + P(B(c)),
+        #           'LP': P(LP(a)) + P(LP(b)) + P(LP(c))
+        #           'P': P(P(a)) + P(P(b)) + P(P(c))}
+        # '2':      {'LB': P(LB(a))*P(LB(b)) + P(LB(a))*P(LB(c)) + P(LB(b))*P(LB(c)),
+        #           'B': P(B(a))*P(B(b)) + P(B(a))*P(B(c)) + P(B(b))*P(B(c)),
+        #           'LP': P(LP(a))*P(LP(b)) + P(LP(a))*P(LP(c)) + P(LP(b))*P(LP(c)),
+        #           'P': P(P(a))*P(P(b)) + P(P(a))*P(P(c)) + P(P(b))*P(P(c))},
+        #  ...
+        # '20': },
+
+        # {'size': {LB: sum-prod-probs, B: sum-prod-probs, LP: sum-prod-probs, P: sum-prod-probs}
 
     def inclusionExclusionProbability(self):
         # https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
@@ -806,10 +803,19 @@ def plotAnyCenterProbability(simulation, outputDir):
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
-    plt.plot(yearList, simulation.PanyCenter, marker='.', color='red', label='pathogenic')
-    plt.plot(yearList, simulation.BanyCenter, marker='.', color='green', label='benign')
-    plt.plot(yearList, simulation.LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, simulation.LBanyCenter, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+    PanyCenter = []
+    BanyCenter = []
+    LPanyCenter = []
+    LBanyCenter = []
+    for year in yearList:
+        PanyCenter.append(simulation.probabilityUnions[year]['P'])
+        BanyCenter.append(simulation.probabilityUnions[year]['B'])
+        LPanyCenter.append(simulation.probabilityUnions[year]['LP'])
+        LBanyCenter.append(simulation.probabilityUnions[year]['LB'])
+    plt.plot(yearList, PanyCenter, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, BanyCenter, marker='.', color='green', label='benign')
+    plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, LBanyCenter, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
