@@ -383,7 +383,7 @@ class Simulation:
 
         # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
         probabilityUnions = []
-        for year in self.years:
+        for year in range(self.years):
             probabilityUnions.append(calculateProbabilityOfUnion(year, subsetByLenDict))
 
         print(probabilityUnions)
