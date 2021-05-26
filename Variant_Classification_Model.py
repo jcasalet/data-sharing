@@ -308,7 +308,7 @@ class Simulation:
         # TODO now that each center has a probability of classification for that year, calculate the
         # probability of classification of any of the centers (i.e. P(A or B or C or ...))
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
-        #self.inclusionExclusionProbability()
+        self.inclusionExclusionProbability()
         self.unionProbability()
 
     def unionProbability(self):
@@ -798,20 +798,26 @@ def plotLRPHist(simulation, center, year, outputDir):
                 centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
     plt.close()
 
-def plotAnyCenterProbability(simulation, outputDir):
+def plotAnyCenterProbability(simulation, outputDir, version):
 
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
-    PanyCenter = []
-    BanyCenter = []
-    LPanyCenter = []
-    LBanyCenter = []
-    for year in yearList:
-        PanyCenter.append(simulation.probabilityUnions[year]['P'])
-        BanyCenter.append(simulation.probabilityUnions[year]['B'])
-        LPanyCenter.append(simulation.probabilityUnions[year]['LP'])
-        LBanyCenter.append(simulation.probabilityUnions[year]['LB'])
+    if version == 'new':
+        PanyCenter = []
+        BanyCenter = []
+        LPanyCenter = []
+        LBanyCenter = []
+        for year in yearList:
+            PanyCenter.append(simulation.probabilityUnions[year]['P'])
+            BanyCenter.append(simulation.probabilityUnions[year]['B'])
+            LPanyCenter.append(simulation.probabilityUnions[year]['LP'])
+            LBanyCenter.append(simulation.probabilityUnions[year]['LB'])
+    else:
+        PanyCenter = simulation.PanyCenter
+        LPanyCenter = simulation.LPanyCenter
+        BanyCenter = simulation.BanyCenter
+        LBanyCenter = simulation.LBanyCenter
     plt.plot(yearList, PanyCenter, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, BanyCenter, marker='.', color='green', label='benign')
     plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
@@ -826,7 +832,7 @@ def plotAnyCenterProbability(simulation, outputDir):
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
-                "any-center" + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
+                "any-center" + '_' + version + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
                 dpi=300)
     plt.close()
 
@@ -921,7 +927,8 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir)
         mySimulation.prob(outputDir=outputDir)
-        plotAnyCenterProbability(mySimulation, outputDir)
+        plotAnyCenterProbability(mySimulation, outputDir, 'old')
+        plotAnyCenterProbability(mySimulation, outputDir, 'new')
 
 
     elif jobType == 'analyze':
