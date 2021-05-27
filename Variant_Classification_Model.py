@@ -310,6 +310,70 @@ class Simulation:
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
         self.inclusionExclusionProbability()
         self.unionProbability()
+        #self.probabilityOfClassification()
+
+    def probabilityOfClassification(self):
+        LB = self.thresholds[0]
+        B = self.thresholds[1]
+        neutral = self.thresholds[2]
+        LP = self.thresholds[3]
+        P = self.thresholds[4]
+        self.unionOfB = []
+        self.unionOfLB = []
+        self.unionOfP = []
+        self.unionOfLP = []
+        allCenters = []
+        for centerList in self.centerListList:
+            for center in centerList:
+                allCenters.append(center)
+
+        for year in range(self.years):
+            numPathogenicClassified = 0
+            numBenignClassified = 0
+            numLPClassified = 0
+            numLBClassified = 0
+            for variant in range(self.numVariants):
+
+                classifiedAsP = False
+                classifiedAsLP = False
+                classifiedAsB = False
+                classifiedAsLB = False
+
+                for center in allCenters:
+                    pathogenic_y = list()
+                    benign_y = list()
+                    pathogenic_y.append(list())
+                    pathogenic_y[variant].append(0)
+                    pathogenic_y[variant] += center.pathogenicLRPs[variant][year:year+1]
+                    benign_y.append(list())
+                    benign_y[variant].append(0)
+                    benign_y[variant] += center.benignLRPs[variant][year:year+1]
+
+                    for lrp in pathogenic_y[variant]:
+                        if not classifiedAsP and not classifiedAsLP:
+                            if lrp > P:
+                                numPathogenicClassified += 1
+                                classifiedAsP = True
+                                break
+                            elif lrp > LP and lrp <= P:
+                                numLPClassified += 1
+                                classifiedAsLP = True
+                                break
+                    for lrp in benign_y[variant]:
+                        if not classifiedAsB and not classifiedAsLB:
+                            if not classifiedAsB and lrp < B:
+                                numBenignClassified += 1
+                                break
+                            elif lrp < LB and lrp >= B:
+                                numLBClassified +=1
+                                break
+            self.unionOfBenignProbabilities.append(float(numBenignClassified) / float(self.numVariants))
+            self.unionOfPathogenicProbabilities.append(float(numPathogenicClassified) / float(self.numVariants))
+            self.unionOfLikelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
+            self.unionOfLikelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
+
+            print(self.unionOfPathogenicProbabilities)
+            print(self.unionOfLikelyPathogenicProbabilities)
 
     def unionProbability(self):
         # P(A U B U C ... U Z) = (sum size 1 sets) - (sum size 2 sets) + (sum size 3 sets) - ...
@@ -336,10 +400,22 @@ class Simulation:
         for year in range(self.years + 1):
             self.probabilityUnions.append(self.calculateProbabilityOfUnion(year, subsetByLenDict))
 
-        print(self.probabilityUnions)
 
     def calculateProbabilityOfUnion(self, year, subsetByLenDict):
         # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
+        # output:
+        #         # {'1':    {'LB': P(LB(a)) + P(LB(b) + P(LB(c)),
+        #         #           'B': P(B(a)) + P(B(b)) + P(B(c)),
+        #         #           'LP': P(LP(a)) + P(LP(b)) + P(LP(c))
+        #         #           'P': P(P(a)) + P(P(b)) + P(P(c))}
+        #         # '2':      {'LB': P(LB(a))*P(LB(b)) + P(LB(a))*P(LB(c)) + P(LB(b))*P(LB(c)),
+        #         #           'B': P(B(a))*P(B(b)) + P(B(a))*P(B(c)) + P(B(b))*P(B(c)),
+        #         #           'LP': P(LP(a))*P(LP(b)) + P(LP(a))*P(LP(c)) + P(LP(b))*P(LP(c)),
+        #         #           'P': P(P(a))*P(P(b)) + P(P(a))*P(P(c)) + P(P(b))*P(P(c))},
+        #         #  ...
+        #         # '20': },
+        #
+        #         # {'size': {LB: sum-prod-probs, B: sum-prod-probs, LP: sum-prod-probs, P: sum-prod-probs}
         probabilities = dict()
         for length in subsetByLenDict:
             probabilities[length] = {'LB': 0, 'B': 0, 'LP': 0, 'P': 0}
@@ -371,19 +447,9 @@ class Simulation:
                 probabilityUnion['LP'] -= probabilities[length]['LP']
                 probabilityUnion['P'] -= probabilities[length]['P']
 
-        return probabilityUnion
-        # {'1':    {'LB': P(LB(a)) + P(LB(b) + P(LB(c)),
-        #           'B': P(B(a)) + P(B(b)) + P(B(c)),
-        #           'LP': P(LP(a)) + P(LP(b)) + P(LP(c))
-        #           'P': P(P(a)) + P(P(b)) + P(P(c))}
-        # '2':      {'LB': P(LB(a))*P(LB(b)) + P(LB(a))*P(LB(c)) + P(LB(b))*P(LB(c)),
-        #           'B': P(B(a))*P(B(b)) + P(B(a))*P(B(c)) + P(B(b))*P(B(c)),
-        #           'LP': P(LP(a))*P(LP(b)) + P(LP(a))*P(LP(c)) + P(LP(b))*P(LP(c)),
-        #           'P': P(P(a))*P(P(b)) + P(P(a))*P(P(c)) + P(P(b))*P(P(c))},
-        #  ...
-        # '20': },
 
-        # {'size': {LB: sum-prod-probs, B: sum-prod-probs, LP: sum-prod-probs, P: sum-prod-probs}
+        return probabilityUnion
+
 
     def inclusionExclusionProbability(self):
         # https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
@@ -622,46 +688,45 @@ class TestCenter:
         LP = thresholds[3]
         P = thresholds[4]
 
+        evidence = list()
+
         for year in range(years):
-            pathogenic_y = list()
-            benign_y = list()
+            #pathogenic_y = list()
+            #benign_y = list()
             for variant in range(self.numVariants):
-                pathogenic_y.append(list())
+                '''pathogenic_y.append(list())
                 pathogenic_y[variant].append(0)
                 pathogenic_y[variant] += self.pathogenicLRPs[variant][year:year+1]
                 benign_y.append(list())
                 benign_y[variant].append(0)
-                benign_y[variant] += self.benignLRPs[variant][year:year+1]
+                benign_y[variant] += self.benignLRPs[variant][year:year+1]'''
+                evidence.append(list())
+                evidence[variant].append(0)
+                evidence[variant] += self.pathogenicLRPs[variant][year:year+1] + self.benignLRPs[variant][year:year+1]
+
 
             numPathogenicClassified = 0
             numBenignClassified = 0
-
-            for variant in range(self.numVariants):
-                for lrp in pathogenic_y[variant]:
-                    if lrp > P:
-                        numPathogenicClassified += 1
-                        break
-                for lrp in benign_y[variant]:
-                    if lrp < B:
-                        numBenignClassified += 1
-                        break
-
-            self.benignProbabilities.append(float(numBenignClassified) / float(self.numVariants))
-            self.pathogenicProbabilities.append(float(numPathogenicClassified) / float(self.numVariants))
-
             numLPClassified = 0
             numLBClassified = 0
 
             for variant in range(self.numVariants):
-                for lrp in pathogenic_y[variant]:
-                    if lrp > LP and lrp <= P:
+                #for lrp in pathogenic_y[variant]:
+                for lrp in evidence[variant]:
+                    if lrp > P:
+                        numPathogenicClassified += 1
+                        break
+                    elif lrp > LP and lrp <= P:
                         numLPClassified += 1
                         break
-                for lrp in benign_y[variant]:
-                    if lrp < LB and lrp >= B:
-                        numLBClassified += 1
+                    elif lrp < B:
+                        numBenignClassified += 1
                         break
-
+                    elif lrp < LB and lrp >= B:
+                        numLBClassified +=1
+                        break
+            self.benignProbabilities.append(float(numBenignClassified) / float(self.numVariants))
+            self.pathogenicProbabilities.append(float(numPathogenicClassified) / float(self.numVariants))
             self.likelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
             self.likelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
 
