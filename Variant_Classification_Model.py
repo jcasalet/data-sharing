@@ -689,20 +689,15 @@ class TestCenter:
 
 
         for year in range(years):
-            evidence = list()
-            #pathogenic_y = list()
-            #benign_y = list()
+            pathogenic_y = list()
+            benign_y = list()
             for variant in range(self.numVariants):
-                '''pathogenic_y.append(list())
+                pathogenic_y.append(list())
                 pathogenic_y[variant].append(0)
                 pathogenic_y[variant] += self.pathogenicLRPs[variant][year:year+1]
                 benign_y.append(list())
                 benign_y[variant].append(0)
-                benign_y[variant] += self.benignLRPs[variant][year:year+1]'''
-                evidence.append(list())
-                evidence[variant].append(0)
-                evidence[variant] += self.pathogenicLRPs[variant][year:year+1] + self.benignLRPs[variant][year:year+1]
-
+                benign_y[variant] += self.benignLRPs[variant][year:year+1]
 
             numPathogenicClassified = 0
             numBenignClassified = 0
@@ -710,17 +705,15 @@ class TestCenter:
             numLBClassified = 0
 
             for variant in range(self.numVariants):
-                #for lrp in pathogenic_y[variant]:
-                for lrp in evidence[variant]:
+                for lrp in pathogenic_y[variant]:
                     if lrp > P:
                         numPathogenicClassified += 1
                         break
                     elif lrp > LP and lrp <= P:
                         numLPClassified += 1
                         break
-                # for lrp in benign_y[variant]:
-
-                    elif lrp < B:
+                for lrp in benign_y[variant]:
+                    if lrp < B:
                         numBenignClassified += 1
                         break
                     elif lrp < LB and lrp >= B:
