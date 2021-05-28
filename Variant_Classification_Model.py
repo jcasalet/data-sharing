@@ -11,7 +11,7 @@ import argparse
 import pickle
 from multiprocessing import Process, Queue, cpu_count
 import matplotlib.patches as mpatches
-
+from shutil import copyfile
 
 
 logger = logging.getLogger()
@@ -562,7 +562,6 @@ class TestCenter:
 
     def runSimulation(self, simulation, numTests, numThreads, threadID, q, rng):
     #def runSimulation(self, simulation, numTests):
-        # TODO: this is where we can add parallelism
         # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
         # that's how many variants each thread will run simulation for
         # put the steps to append to LRs and LRPs outside this loop in an "update()" call?
@@ -688,9 +687,9 @@ class TestCenter:
         LP = thresholds[3]
         P = thresholds[4]
 
-        evidence = list()
 
         for year in range(years):
+            evidence = list()
             #pathogenic_y = list()
             #benign_y = list()
             for variant in range(self.numVariants):
@@ -719,6 +718,8 @@ class TestCenter:
                     elif lrp > LP and lrp <= P:
                         numLPClassified += 1
                         break
+                # for lrp in benign_y[variant]:
+
                     elif lrp < B:
                         numBenignClassified += 1
                         break
@@ -979,14 +980,16 @@ def main():
     jobType = parse_args().jobType
     # diff mixes: 4s + 2m + 1l; 8s + 4m + 5l
     config = Configuration(confFile)
-
+    nLevels = confFile.count('/')
+    fileName = confFile.split('/')[nLevels]
+    copyfile(confFile, outputDir + '/' + fileName)
     types = ['low', 'med', 'hi']
     parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
                   "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     #parameters = ["b7_PS2", "p2_PM6"]
 
     if jobType == 'simulate':
-        print('simulate this!')
+        print('simulating!')
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
         mySimulation.run()
         mySimulation.scatter(outputDir=outputDir)
@@ -997,7 +1000,7 @@ def main():
 
 
     elif jobType == 'analyze':
-        print('analyze this!')
+        print('analyzing!')
         allLRPs = runAnalysis(types, parameters, config, outputDir)
         saveAllLRPs(types, parameters, allLRPs, outputDir)
     else:
