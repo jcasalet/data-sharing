@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import MaxNLocator
+import numpy
 
 def plotLRPScatter(simulation, center, year, outputDir):
     centerName = center.name
