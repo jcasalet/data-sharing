@@ -12,7 +12,7 @@ import pickle
 from multiprocessing import Process, Queue, cpu_count
 import matplotlib.patches as mpatches
 from shutil import copyfile
-
+from collections import defaultdict
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -236,10 +236,9 @@ class Simulation:
                     p.start()
                     processList.append(p)
                 for i in range(self.numThreads):
-                    self.myUpdate(center, q.get())
+                    self.updateLRsAndLRPs(center, q.get())
                 for i in range(self.numThreads):
                     processList[i].join()
-                #center.runSimulation(self, center.initialSize)
                 self.combineAllLRsFromCenter(center, 0)
         self.calculateAllLRPs()
 
@@ -294,17 +293,18 @@ class Simulation:
                         p.start()
                         processList.append(p)
                     for i in range(self.numThreads):
-                        self.myUpdate(center, q.get())
+                        self.updateLRsAndLRPs(center, q.get())
                     for i in range(self.numThreads):
                         processList[i].join()
-                    #center.runSimulation(self, center.testsPerYear)
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
         # after all the data is generated, calculate the probability of classification for each center
+        self.pathogenicVariantClassifications = dict()
+        self.benignVariantClassifications = dict()
         for centers in self.centerListList:
             for center in centers:
-                center.probabilityOfClassification(self.thresholds, self.years)
-        self.allCenters.probabilityOfClassification(self.thresholds, self.years)
+                center.probabilityOfClassification(self)
+        self.allCenters.probabilityOfClassification(self)
         # TODO now that each center has a probability of classification for that year, calculate the
         # probability of classification of any of the centers (i.e. P(A or B or C or ...))
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
@@ -498,15 +498,18 @@ class Simulation:
             self.LPanyCenter.append(1 - LPprob)
             self.PanyCenter.append(1 - Pprob)
 
-    def myUpdate(self, center, q):
+    def updateLRsAndLRPs(self, center, q):
         plrs = q[0]
         blrs = q[1]
         for p in plrs:
             center.pathogenicLRs[p].append(plrs[p][0])
         for b in blrs:
             center.benignLRs[b].append(blrs[b][0])
+
+        # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
         for p in plrs:
             center.pathogenicLRPs[p].append(calculateSumOfLogs(center.pathogenicLRs[p]))
+        # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
         for b in blrs:
             center.benignLRPs[b].append(calculateSumOfLogs(center.benignLRs[b]))
 
@@ -561,34 +564,32 @@ class TestCenter:
 
 
     def runSimulation(self, simulation, numTests, numThreads, threadID, q, rng):
-    #def runSimulation(self, simulation, numTests):
-        # given the number of threads, divide the number of variants (self.numVariants) by the number of threads
-        # that's how many variants each thread will run simulation for
-        # put the steps to append to LRs and LRPs outside this loop in an "update()" call?
+    # we run the simulation for a single variant assuming it's benign and assuming it's pathogenic.
+    # so for every variant, we are running 2 experiments in parallel.
 
-        numVariants = divide(self.numVariants, numThreads)
-        start, end = getStartAndEnd(numVariants, threadID)
+        # divide up the total number of variants in experiment evenly across the number of threads
+        numVariantsPerThread = divide(self.numVariants, numThreads)
+        start, end = getStartAndEnd(numVariantsPerThread, threadID)
+
+        # keep track of likelihood ratios for each variant
         pathogenicLRs = dict()
         benignLRs = dict()
-        #pathogenicLRPs = dict()
-        #benignLRPs = dict()
 
-        #for variant in range(self.numVariants):
+        # loop thru all the variants assigned to this thread
         for variant in range(start, end):
+            # each variant will get a list of LRs assigned to it as evidence
             pathogenicLRs[variant] = list()
             benignLRs[variant] = list()
-            #pathogenicLRPs[variant] = list()
-            #benignLRPs[variant] = list()
 
-            # generate observations of variant (assumed to be pathogenic) from people with variant
+            # generate pool of observations of variant (assumed pathogenic)
             pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
                             simulation.P, simulation.B, numTests)
 
-            # generate observations of variant (assumed to be benign) from people with variant
+            # generate pool of observations of variant (assumed benign)
             benignObservations = self.generateBenignObservationsFromTests(simulation.b, simulation.P,
                                                                     simulation.B, numTests)
 
-            # use Poisson distribution to get number of people from this batch with that variant
+            # use Poisson distribution to get number of people with that variant in this batch of tests
             numPeopleWithVariant = sampleNumberOfPeopleWithVariant(numTests, simulation.frequency, rng)
 
             # use PSF to calculate expected number of benign/pathogenic observations for people with variant
@@ -600,14 +601,10 @@ class TestCenter:
             # generate evidence for observations assumed benign
             benignLRs[variant].append(sampleEvidenceFromObservations(numExpectedBenign, benignObservations, rng))
 
-            # JC I put the steps to update the benignLRPs and pathogenicLRPs in the myUpdate() call b/c those calls
+            # JC I put the steps to update the benignLRPs and pathogenicLRPs in the updateLRsAndLRPs() call b/c those calls
             # need ALL of the LRs (current and previous years), not just the current year which is what is available
             # here
-            # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
-            #self.benignLRPs[variant].append(calculateSumOfLogs(self.benignLRs[variant]))
 
-            # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
-            #self.pathogenicLRPs[variant].append(calculateSumOfLogs(self.pathogenicLRs[variant]))
 
         q.put([pathogenicLRs, benignLRs])
 
@@ -680,15 +677,17 @@ class TestCenter:
     def getNumberOfObservations(self):
         return len(self.pathogenicObservations) + len(self.benignObservations)
 
-    def probabilityOfClassification(self, thresholds, years):
-        LB = thresholds[0]
-        B = thresholds[1]
-        neutral = thresholds[2]
-        LP = thresholds[3]
-        P = thresholds[4]
+    def probabilityOfClassification(self, simulation):
+        LB = simulation.thresholds[0]
+        B = simulation.thresholds[1]
+        neutral = simulation.thresholds[2]
+        LP = simulation.thresholds[3]
+        P = simulation.thresholds[4]
 
 
-        for year in range(years):
+        for year in range(simulation.years):
+            simulation.pathogenicVariantClassifications[year] = defaultdict()
+            simulation.benignVariantClassifications[year] = defaultdict()
             pathogenic_y = list()
             benign_y = list()
             for variant in range(self.numVariants):
@@ -699,28 +698,33 @@ class TestCenter:
                 benign_y[variant].append(0)
                 benign_y[variant] += self.benignLRPs[variant][year:year+1]
 
-            numPathogenicClassified = 0
-            numBenignClassified = 0
+            numPClassified = 0
+            numBClassified = 0
             numLPClassified = 0
             numLBClassified = 0
 
             for variant in range(self.numVariants):
                 for lrp in pathogenic_y[variant]:
+                    var = str(variant)
                     if lrp > P:
-                        numPathogenicClassified += 1
+                        numPClassified += 1
+                        simulation.pathogenicVariantClassifications[year][variant] = 'P'
                         break
                     elif lrp > LP and lrp <= P:
                         numLPClassified += 1
+                        simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp in benign_y[variant]:
                     if lrp < B:
-                        numBenignClassified += 1
+                        numBClassified += 1
+                        simulation.benignVariantClassifications[year][variant] = 'B'
                         break
                     elif lrp < LB and lrp >= B:
                         numLBClassified +=1
+                        simulation.benignVariantClassifications[year][variant] = 'LB'
                         break
-            self.benignProbabilities.append(float(numBenignClassified) / float(self.numVariants))
-            self.pathogenicProbabilities.append(float(numPathogenicClassified) / float(self.numVariants))
+            self.benignProbabilities.append(float(numBClassified) / float(self.numVariants))
+            self.pathogenicProbabilities.append(float(numPClassified) / float(self.numVariants))
             self.likelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
             self.likelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
 
@@ -872,11 +876,37 @@ def plotAnyCenterProbability(simulation, outputDir, version):
             BanyCenter.append(simulation.probabilityUnions[year]['B'])
             LPanyCenter.append(simulation.probabilityUnions[year]['LP'])
             LBanyCenter.append(simulation.probabilityUnions[year]['LB'])
-    else:
+    elif version == 'old':
         PanyCenter = simulation.PanyCenter
         LPanyCenter = simulation.LPanyCenter
         BanyCenter = simulation.BanyCenter
         LBanyCenter = simulation.LBanyCenter
+    else:
+        PanyCenter = [0]
+        BanyCenter = [0]
+        LPanyCenter = [0]
+        LBanyCenter = [0]
+        for year in range(0, simulation.years):
+            pSum = 0
+            bSum = 0
+            lpSum = 0
+            lbSum = 0
+            for variant in simulation.benignVariantClassifications[year]:
+                if simulation.benignVariantClassifications[year][variant] == 'B':
+                    bSum += 1
+                elif simulation.benignVariantClassifications[year][variant] == 'LB':
+                    lbSum += 1
+            BanyCenter.append(float(bSum) / float(simulation.numVariants))
+            LBanyCenter.append(float(lbSum / float(simulation.numVariants)))
+            for variant in simulation.pathogenicVariantClassifications[year]:
+                if simulation.pathogenicVariantClassifications[year][variant] == 'P':
+                    pSum += 1
+                elif simulation.pathogenicVariantClassifications[year][variant] == 'LP':
+                    lpSum += 1
+            PanyCenter.append(float(pSum) / float(simulation.numVariants))
+            LPanyCenter.append(float(lpSum / float(simulation.numVariants)))
+
+
     plt.plot(yearList, PanyCenter, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, BanyCenter, marker='.', color='green', label='benign')
     plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
@@ -884,9 +914,9 @@ def plotAnyCenterProbability(simulation, outputDir, version):
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
-    #plt.title(center.name)
-    #plt.legend(loc='upper left', prop= {'size': 8} )
-    #plt.show()
+    '''plt.figure()
+    plt.hist([BanyCenter, LBanyCenter, PanyCenter, LPanyCenter], bins=5, stacked=True, density=False)
+    plt.show()'''
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
@@ -985,11 +1015,13 @@ def main():
         print('simulating!')
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
         mySimulation.run()
-        mySimulation.scatter(outputDir=outputDir)
-        mySimulation.hist(outputDir=outputDir)
+        #mySimulation.scatter(outputDir=outputDir)
+        #mySimulation.hist(outputDir=outputDir)
         mySimulation.prob(outputDir=outputDir)
         plotAnyCenterProbability(mySimulation, outputDir, 'old')
         plotAnyCenterProbability(mySimulation, outputDir, 'new')
+        plotAnyCenterProbability(mySimulation, outputDir, 'correct')
+
 
 
     elif jobType == 'analyze':
