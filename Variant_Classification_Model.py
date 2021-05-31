@@ -192,7 +192,6 @@ class Simulation:
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
         self.inclusionExclusionProbability()
         self.unionProbability()
-        self.probabilityOfClassification()
 
 
     def unionProbability(self):
