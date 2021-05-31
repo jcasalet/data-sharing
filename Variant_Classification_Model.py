@@ -190,9 +190,9 @@ class Simulation:
         # TODO now that each center has a probability of classification for that year, calculate the
         # probability of classification of any of the centers (i.e. P(A or B or C or ...))
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
-        #self.inclusionExclusionProbability()
-        #self.unionProbability()
-        #self.probabilityOfClassification()
+        self.inclusionExclusionProbability()
+        self.unionProbability()
+        self.probabilityOfClassification()
 
 
     def unionProbability(self):
@@ -534,7 +534,6 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir)
         mySimulation.prob(outputDir=outputDir)
-        plot.plotAnyCenterProbability(mySimulation, outputDir, 'old')
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'new')
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
 

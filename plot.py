@@ -79,26 +79,7 @@ def plotLRPHist(simulation, center, year, outputDir):
 
     # TODO calculate the plot limits dynamically, not hard-coded
     ax = plt.figure(figsize=(8, 6)).gca()
-    '''if f <= 1e-6:
-        plt.xlim(-5, 15)
-        bins = numpy.arange(-5, 15, 0.5)
-        plt.ylim(0, 1)
-    elif f <= 1e-5:
-        plt.xlim(-15, 60)
-        bins = numpy.arange(-15, 60, 0.5)
-        plt.ylim(0, 1)
-    elif f <= 1e-4:
-        plt.xlim(-20, 20)
-        plt.ylim(0, 60)
-    elif f <= 1e-3:
-        plt.xlim(-15, 15)
-        plt.ylim(0, 80)
-    else:
-        plt.xlim(-20, 20)
-        plt.ylim(0, 100)'''
 
-    #lowerLimit = min(min(benign_x), min(pathogenic_x))
-    #upperLimit = max(max(benign_x), max(pathogenic_x))
     lowerLimit = -10
     upperLimit = 20
     plt.xlim(lowerLimit, upperLimit)
