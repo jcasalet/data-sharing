@@ -176,6 +176,11 @@ def plotProbability(simulation, center, outputDir):
     yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
+
+    #ax = plt.figure(figsize=(8, 6)).gca()
+    #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
+    #ax.set_title('stacked bar')
+
     plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')

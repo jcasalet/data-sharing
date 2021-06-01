@@ -336,12 +336,11 @@ class Simulation:
                     plot.plotLRPScatter(self, center, year,  outputDir)
             plot.plotLRPScatter(self, self.allCenters, year, outputDir)
 
-    def hist(self, outputDir):
-        for year in [self.years]:
-            for centers in self.centerListList:
-                for center in centers:
-                    plot.plotLRPHist(self, center, year, outputDir)
-            plot.plotLRPHist(self, self.allCenters, year, outputDir)
+    def hist(self, outputDir, year):
+        for centers in self.centerListList:
+            for center in centers:
+                plot.plotLRPHist(self, center, year, outputDir)
+        plot.plotLRPHist(self, self.allCenters, year, outputDir)
 
     def prob(self, outputDir):
         for centers in self.centerListList:
@@ -444,7 +443,7 @@ class TestCenter:
     def probabilityOfClassification(self, simulation):
         LB = simulation.thresholds[0]
         B = simulation.thresholds[1]
-        neutral = simulation.thresholds[2]
+        # neutral = simulation.thresholds[2]
         LP = simulation.thresholds[3]
         P = simulation.thresholds[4]
 
@@ -452,15 +451,15 @@ class TestCenter:
         for year in range(simulation.years):
             simulation.pathogenicVariantClassifications[year] = defaultdict()
             simulation.benignVariantClassifications[year] = defaultdict()
-            pathogenic_y = list()
-            benign_y = list()
+            pLRPs = list()
+            bLRPs = list()
             for variant in range(self.numVariants):
-                pathogenic_y.append(list())
-                pathogenic_y[variant].append(0)
-                pathogenic_y[variant] += self.pathogenicLRPs[variant][year:year+1]
-                benign_y.append(list())
-                benign_y[variant].append(0)
-                benign_y[variant] += self.benignLRPs[variant][year:year+1]
+                pLRPs.append(list())
+                pLRPs[variant].append(0)
+                pLRPs[variant] += self.pathogenicLRPs[variant][year:year+1]
+                bLRPs.append(list())
+                bLRPs[variant].append(0)
+                bLRPs[variant] += self.benignLRPs[variant][year:year+1]
 
             numPClassified = 0
             numBClassified = 0
@@ -468,8 +467,7 @@ class TestCenter:
             numLBClassified = 0
 
             for variant in range(self.numVariants):
-                for lrp in pathogenic_y[variant]:
-                    var = str(variant)
+                for lrp in pLRPs[variant]:
                     if lrp > P:
                         numPClassified += 1
                         simulation.pathogenicVariantClassifications[year][variant] = 'P'
@@ -478,7 +476,7 @@ class TestCenter:
                         numLPClassified += 1
                         simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
-                for lrp in benign_y[variant]:
+                for lrp in bLRPs[variant]:
                     if lrp < B:
                         numBClassified += 1
                         simulation.benignVariantClassifications[year][variant] = 'B'
@@ -531,10 +529,13 @@ def main():
         mySimulation = Simulation(config=config.data, saType='med', saParam=None)
         mySimulation.run()
         mySimulation.scatter(outputDir=outputDir)
-        mySimulation.hist(outputDir=outputDir)
+        mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
         mySimulation.prob(outputDir=outputDir)
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'new')
+        plot.plotAnyCenterProbability(mySimulation, outputDir, 'old')
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
+
+
 
 
     elif jobType == 'analyze':
