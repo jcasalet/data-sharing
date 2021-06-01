@@ -21,20 +21,21 @@ logger.debug("Established logger")
 
 
 class Configuration:
-
+    # this class reads in the JSON config file and stores the JSON data
     def __init__(self, configFileName):
         self.configFileName = configFileName
-
         if self.configFileName != '' and not os.path.exists(self.configFileName):
             logger.error('config file ' + self.configFileName + ' does not exist!', file=sys.stderr)
             sys.exit(1)
-
         with open(self.configFileName, 'r') as myFile:
             jsonData = myFile.read()
         self.data = json.loads(jsonData)
 
 
 class Simulation:
+    # this class encapsulates the simulation by reading in the configuration and determining the
+    # type of run (either analyze or simulate).  There are small, medium, and large centers as well as the constants
+    # from the configuration (e.g number of threads, number of variants, PSF, thresholds, ... etc)
     def __init__(self, config, saType, saParam):
         simulation = config['simulation']
         self.saType = saType
@@ -52,20 +53,20 @@ class Simulation:
 
         constants = config['constants']
 
-
+        # p represents the ACMG evidence criteria for pathogenic variants
         self.p = {'p0': constants['p0']['med'], 'p1_M3': constants['p1_PM3']['med'], 'p2_PM6': constants['p2_PM6']['med'],
                   'p3_BS2': constants['p3_BS2']['med'], 'p4_BP2': float(eval(constants['p4_BP2']['med'])),
                   'p5_BP5': constants['p5_BP5']['med'], 'p6_PP1': constants['p6_PP1']['med'],
                   'p7_PS2': constants['p7_PS2']['med'], 'p8_BS4': constants['p8_BS4']['med']}
 
 
-
+        # b represents the ACMG evidence criteria for benign variants
         self.b = {'b0': constants['b0']['med'], 'b1_PM3': constants['b1_PM3']['med'], 'b2_PM6': constants['b2_PM6']['med'],
                   'b3_BS2': constants['b3_BS2']['med'], 'b4_BP2': float(eval(constants['b4_BP2']['med'])),
                   'b5_BP5': constants['b5_BP5']['med'], 'b6_PP1': constants['b6_PP1']['med'],
                   'b7_PS2': constants['b7_PS2']['med'], 'b8_BS4': constants['b8_BS4']['med']}
 
-        # if doing SA, override single parameter value specified in saParam to saType
+        # if doing senstivity analysis, override single parameter value specified in saParam to saType
         if self.saParam is None:
             pass
         elif self.saParam.startswith('p'):
@@ -82,11 +83,15 @@ class Simulation:
             logger.error('unknown saParam: ' + str(self.saParam))
             sys.exit(1)
 
+        # P represents the LRs for pathogenic evidence (strong, moderate, supporting)
         self.P = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
+        # B represents the LRs for benign evidence (strong, and supporting)
         self.B = {'BS': constants['BS'], 'BP': constants['BP']}
 
+        # PSF is the pathogenic selection factor --> how much more likely is someone to have a pathogenic variant
         self.PSF = constants['PSF']
 
+        # assumptions about the initial sizes of each type of center
         self.smallInitialSize = constants['smallInitialSize']
         self.smallTestsPerYear = constants['smallTestsPerYear']
         self.mediumInitialSize = constants['mediumInitialSize']
@@ -94,16 +99,18 @@ class Simulation:
         self.largeInitialSize = constants['largeInitialSize']
         self.largeTestsPerYear = constants['largeTestsPerYear']
 
+        # thresholds from Tavtigian et al
         self.benignThreshold = constants['benignThreshold']
         self.likelyBenignThreshold = constants['likelyBenignThreshold']
         self.likelyPathogenicThreshold = constants['likelyPathogenicThreshold']
         self.pathogenicThreshold = constants['pathogenicThreshold']
-
         self.thresholds = [self.benignThreshold, self.likelyBenignThreshold, 0, self.likelyPathogenicThreshold, self.pathogenicThreshold]
 
+        # construct lists of each type of center
         self.smallCenters = list()
         self.mediumCenters = list()
         self.largeCenters = list()
+        # master list of center lists
         self.centerListList = [self.smallCenters, self.mediumCenters, self.largeCenters]
         # initialize all centers
         for i in range(self.nSmall):
@@ -121,12 +128,12 @@ class Simulation:
                                                 initialSize=self.largeInitialSize,
                                                 testsPerYear=self.largeTestsPerYear,
                                                 numVariants=self.numVariants))
-
+        # intialize all centers object
         self.allCenters = TestCenter(name='all',
                                 initialSize=0,
                                 testsPerYear=0,
                                 numVariants=self.numVariants)
-
+        # run simulation on all centers for set of variants based on initial size
         for centers in self.centerListList:
             for center in centers:
                 q = Queue()
@@ -141,10 +148,13 @@ class Simulation:
                     self.updateLRsAndLRPs(center, q.get())
                 for i in range(self.numThreads):
                     processList[i].join()
+                # combine LRs from each center into all centers object
                 self.combineAllLRsFromCenter(center, 0)
+        # calculate LRPs for all centers object
         self.calculateAllLRPs()
 
     def calculateAllLRPs(self):
+        # combining LRs for variant amounts to taking sum of logs (log(prods) = sum(logs))
         for variant in range(self.numVariants):
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
             self.allCenters.benignLRPs[variant].append(utils.calculateSumOfLogs(self.allCenters.benignLRs[variant]))
@@ -152,6 +162,7 @@ class Simulation:
             self.allCenters.pathogenicLRPs[variant].append(utils.calculateSumOfLogs(self.allCenters.pathogenicLRs[variant]))
 
     def combineAllLRsFromCenter(self, center, year):
+        # just add the sublists for the variant for that year from each center to all centers object
         for variant in range(self.numVariants):
             self.allCenters.pathogenicLRs[variant].append([])
             self.allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
@@ -186,16 +197,17 @@ class Simulation:
                 center.probabilityOfClassification(self)
         self.allCenters.probabilityOfClassification(self)
 
-
-        # TODO now that each center has a probability of classification for that year, calculate the
+        # now that each center has a probability of classification for that year, calculate the
         # probability of classification of any of the centers (i.e. P(A or B or C or ...))
         # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
+        # "old" way uses inclusion-exclusion principle short cut
         self.inclusionExclusionProbability()
+        # "new" way uses long polynomial
         self.unionProbability()
 
 
     def unionProbability(self):
-        # P(A U B U C ... U Z) = (sum size 1 sets) - (sum size 2 sets) + (sum size 3 sets) - ...
+        # P(A U B U C ... ) = (sum size 1 sets) - (sum size 2 sets) + (sum size 3 sets) - ...
         import itertools
         subsets = list()
         centers = set()
@@ -531,12 +543,9 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
         mySimulation.prob(outputDir=outputDir)
-        plot.plotAnyCenterProbability(mySimulation, outputDir, 'new')
-        plot.plotAnyCenterProbability(mySimulation, outputDir, 'old')
+        #plot.plotAnyCenterProbability(mySimulation, outputDir, 'new')
+        #plot.plotAnyCenterProbability(mySimulation, outputDir, 'old')
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
-
-
-
 
     elif jobType == 'analyze':
         print('analyzing!')
