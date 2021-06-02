@@ -10,10 +10,12 @@ def plotLRPScatter(simulation, center, year, outputDir):
     for variant in range(center.numVariants):
         pathogenic_y.append(list())
         pathogenic_y[variant].append(0)
-        pathogenic_y[variant] += center.pathogenicLRPs[variant][0:year]
+        for i in range(0, year):
+            pathogenic_y[variant].append(center.pathogenicLRPs[variant][i])
         benign_y.append(list())
         benign_y[variant].append(0)
-        benign_y[variant] += center.benignLRPs[variant][0:year]
+        for i in range(0, year):
+            benign_y[variant].append(center.benignLRPs[variant][i])
 
     yearList = [i for i in range(0, year+1)]
     x = yearList
@@ -131,11 +133,11 @@ def plotAnyCenterProbability(simulation, outputDir, version):
         BanyCenter = simulation.BanyCenter
         LBanyCenter = simulation.LBanyCenter
     else:
-        PanyCenter = [0]
-        BanyCenter = [0]
-        LPanyCenter = [0]
-        LBanyCenter = [0]
-        for year in range(0, simulation.years):
+        PanyCenter = []
+        BanyCenter = []
+        LPanyCenter = []
+        LBanyCenter = []
+        for year in yearList:
             pSum = 0
             bSum = 0
             lpSum = 0
@@ -180,11 +182,20 @@ def plotProbability(simulation, center, outputDir):
     #ax = plt.figure(figsize=(8, 6)).gca()
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
     #ax.set_title('stacked bar')
+    bProbabilities = []
+    lbProbabilities = []
+    pProbabilities = []
+    lpProbabilities = []
+    for year in range(simulation.years + 1):
+        bProbabilities.append(center.benignProbabilities[year])
+        lbProbabilities.append(center.likelyBenignProbabilities[year])
+        pProbabilities.append(center.pathogenicProbabilities[year])
+        lpProbabilities.append(center.pathogenicProbabilities[year])
 
-    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
-    plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
-    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+    plt.plot(yearList, pProbabilities, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, bProbabilities, marker='.', color='green', label='benign')
+    plt.plot(yearList, lpProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, lbProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)

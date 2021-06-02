@@ -106,6 +106,11 @@ class Simulation:
         self.pathogenicThreshold = constants['pathogenicThreshold']
         self.thresholds = [self.benignThreshold, self.likelyBenignThreshold, 0, self.likelyPathogenicThreshold, self.pathogenicThreshold]
 
+        # create dictionary for P and LP classifications pathogenicVariantClassifications[year][variant] = 'P' or 'LP'
+        # similar for B and LB
+        self.pathogenicVariantClassifications = dict()
+        self.benignVariantClassifications = dict()
+
         # construct lists of each type of center
         self.smallCenters = list()
         self.mediumCenters = list()
@@ -190,140 +195,19 @@ class Simulation:
                     self.combineAllLRsFromCenter(center, year)
             self.calculateAllLRPs()
         # after all the data is generated, calculate the probability of classification for each center
-        self.pathogenicVariantClassifications = dict()
-        self.benignVariantClassifications = dict()
         for centers in self.centerListList:
             for center in centers:
                 center.probabilityOfClassification(self)
         self.allCenters.probabilityOfClassification(self)
 
-        # now that each center has a probability of classification for that year, calculate the
-        # probability of classification of any of the centers (i.e. P(A or B or C or ...))
-        # use https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
-        # "old" way uses inclusion-exclusion principle short cut
-        self.inclusionExclusionProbability()
-        # "new" way uses long polynomial
-        self.unionProbability()
-
-
-    def unionProbability(self):
-        # P(A U B U C ... ) = (sum size 1 sets) - (sum size 2 sets) + (sum size 3 sets) - ...
-        import itertools
-        subsets = list()
-        centers = set()
-        for cl in self.centerListList:
-            for c in cl:
-                centers.add(c)
-        for i in range(1, len(centers) + 1):
-            subsets.append(itertools.combinations(centers, i))
-
-        # {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
-        subsetByLenDict = dict()
-        for subset in subsets:
-            for s in subset:
-                l = str(len(s))
-                if not str(l) in subsetByLenDict:
-                    subsetByLenDict[l] = []
-                subsetByLenDict[l].append(s)
-
-        # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
-        self.probabilityUnions = []
-        for year in range(self.years + 1):
-            self.probabilityUnions.append(self.calculateProbabilityOfUnion(year, subsetByLenDict))
-
-
-    def calculateProbabilityOfUnion(self, year, subsetByLenDict):
-        # subsetByLenDict = {'1': [(a,), (b,), (c,)], '2': [(a, b), (a, c), (b, c)], '3': [(a, b, c)]}
-        # output:
-        #         # {'1':    {'LB': P(LB(a)) + P(LB(b) + P(LB(c)),
-        #         #           'B': P(B(a)) + P(B(b)) + P(B(c)),
-        #         #           'LP': P(LP(a)) + P(LP(b)) + P(LP(c))
-        #         #           'P': P(P(a)) + P(P(b)) + P(P(c))}
-        #         # '2':      {'LB': P(LB(a))*P(LB(b)) + P(LB(a))*P(LB(c)) + P(LB(b))*P(LB(c)),
-        #         #           'B': P(B(a))*P(B(b)) + P(B(a))*P(B(c)) + P(B(b))*P(B(c)),
-        #         #           'LP': P(LP(a))*P(LP(b)) + P(LP(a))*P(LP(c)) + P(LP(b))*P(LP(c)),
-        #         #           'P': P(P(a))*P(P(b)) + P(P(a))*P(P(c)) + P(P(b))*P(P(c))},
-        #         #  ...
-        #         # '20': },
-        #
-        #         # {'size': {LB: sum-prod-probs, B: sum-prod-probs, LP: sum-prod-probs, P: sum-prod-probs}
-        probabilities = dict()
-        for length in subsetByLenDict:
-            probabilities[length] = {'LB': 0, 'B': 0, 'LP': 0, 'P': 0}
-            for subset in subsetByLenDict[length]:
-                tempLB = 1.0
-                tempB = 1.0
-                tempLP = 1.0
-                tempP = 1.0
-                for center in subset:
-                    tempLB *= center.likelyBenignProbabilities[year]
-                    tempB *= center.benignProbabilities[year]
-                    tempLP *= center.likelyPathogenicProbabilities[year]
-                    tempP *= center.pathogenicProbabilities[year]
-                probabilities[length]['LB'] += tempLB
-                probabilities[length]['B'] += tempB
-                probabilities[length]['LP'] += tempLP
-                probabilities[length]['P'] += tempP
-
-        probabilityUnion = {'LB': 0, 'B': 0, 'LP': 0, 'P': 0}
-        for length in probabilities:
-            if int(length) % 2 == 1:
-                probabilityUnion['LB'] += probabilities[length]['LB']
-                probabilityUnion['B'] += probabilities[length]['B']
-                probabilityUnion['LP'] += probabilities[length]['LP']
-                probabilityUnion['P'] += probabilities[length]['P']
-            else:
-                probabilityUnion['LB'] -= probabilities[length]['LB']
-                probabilityUnion['B'] -= probabilities[length]['B']
-                probabilityUnion['LP'] -= probabilities[length]['LP']
-                probabilityUnion['P'] -= probabilities[length]['P']
-
-
-        return probabilityUnion
-
-
-    def inclusionExclusionProbability(self):
-        # https://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle#In_probability
-        # calculate for each year, store in list or dictionary
-        LB = list()
-        B = list()
-        LP = list()
-        P = list()
-        for center in self.largeCenters:
-            LB.append(center.likelyBenignProbabilities)
-            B.append(center.benignProbabilities)
-            LP.append(center.likelyPathogenicProbabilities)
-            P.append(center.pathogenicProbabilities)
-        for center in self.mediumCenters:
-            LB.append(center.likelyBenignProbabilities)
-            B.append(center.benignProbabilities)
-            LP.append(center.likelyPathogenicProbabilities)
-            P.append(center.pathogenicProbabilities)
-        for center in self.smallCenters:
-            LB.append(center.likelyBenignProbabilities)
-            B.append(center.benignProbabilities)
-            LP.append(center.likelyPathogenicProbabilities)
-            P.append(center.pathogenicProbabilities)
-
-        self.LBanyCenter = []
-        self.BanyCenter = []
-        self.LPanyCenter = []
-        self.PanyCenter = []
-        for year in range(self.years+1):
-            LBprob = 1.0
-            Bprob = 1.0
-            LPprob = 1.0
-            Pprob = 1.0
-            for center in range(len(LB)):
-                LBprob *= (1.0 - LB[center][year])
-                Bprob *= (1.0 - B[center][year])
-                LPprob *= (1.0 - LP[center][year])
-                Pprob *= (1.0 - P[center][year])
-
-            self.LBanyCenter.append(1 - LBprob)
-            self.BanyCenter.append(1 - Bprob)
-            self.LPanyCenter.append(1 - LPprob)
-            self.PanyCenter.append(1 - Pprob)
+    def showTheClassifications(self, year, variant):
+        print("variant: " + str(variant) + " year: " + str(year))
+        for centerList in self.centerListList:
+            for center in centerList:
+                print("center: " + center.name, end= ",")
+                print("P prob: " + str(center.pathogenicProbabilities[year]), end=",")
+                print("LP prob: " + str(center.likelyPathogenicProbabilities[year]))
+        print("classification: " + self.pathogenicVariantClassifications[year][variant])
 
     def updateLRsAndLRPs(self, center, q):
         plrs = q[0]
@@ -339,7 +223,6 @@ class Simulation:
         # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
         for b in blrs:
             center.benignLRPs[b].append(utils.calculateSumOfLogs(center.benignLRs[b]))
-
 
     def scatter(self, outputDir):
         for year in [self.years]:
@@ -376,10 +259,10 @@ class TestCenter:
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
         self.pathogenicLRPs = dict()
-        self.benignProbabilities = [0]
-        self.pathogenicProbabilities = [0]
-        self.likelyBenignProbabilities = [0]
-        self.likelyPathogenicProbabilities = [0]
+        self.benignProbabilities = defaultdict()
+        self.pathogenicProbabilities = defaultdict()
+        self.likelyBenignProbabilities = defaultdict()
+        self.likelyPathogenicProbabilities = defaultdict()
 
         # create key for variant in each dict
         for variant in range(numVariants):
@@ -460,9 +343,10 @@ class TestCenter:
         P = simulation.thresholds[4]
 
 
-        for year in range(simulation.years):
-            simulation.pathogenicVariantClassifications[year] = defaultdict()
-            simulation.benignVariantClassifications[year] = defaultdict()
+        for year in range(simulation.years + 1):
+            if self.name != 'all':
+                simulation.pathogenicVariantClassifications[year] = dict()
+                simulation.benignVariantClassifications[year] = dict()
             pLRPs = list()
             bLRPs = list()
             for variant in range(self.numVariants):
@@ -482,25 +366,30 @@ class TestCenter:
                 for lrp in pLRPs[variant]:
                     if lrp > P:
                         numPClassified += 1
-                        simulation.pathogenicVariantClassifications[year][variant] = 'P'
+                        if self.name != 'all':
+                            simulation.pathogenicVariantClassifications[year][variant] = 'P'
                         break
                     elif lrp > LP and lrp <= P:
                         numLPClassified += 1
-                        simulation.pathogenicVariantClassifications[year][variant] = 'LP'
+                        if self.name != 'all':
+                            simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp in bLRPs[variant]:
                     if lrp < B:
                         numBClassified += 1
-                        simulation.benignVariantClassifications[year][variant] = 'B'
+                        if self.name != 'all':
+                            simulation.benignVariantClassifications[year][variant] = 'B'
                         break
                     elif lrp < LB and lrp >= B:
                         numLBClassified +=1
-                        simulation.benignVariantClassifications[year][variant] = 'LB'
+                        if self.name != 'all':
+                            simulation.benignVariantClassifications[year][variant] = 'LB'
                         break
-            self.benignProbabilities.append(float(numBClassified) / float(self.numVariants))
-            self.pathogenicProbabilities.append(float(numPClassified) / float(self.numVariants))
-            self.likelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
-            self.likelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
+            self.benignProbabilities[year] = float(numBClassified) / float(self.numVariants)
+            self.pathogenicProbabilities[year] = float(numPClassified) / float(self.numVariants)
+            self.likelyBenignProbabilities[year] = float(numLBClassified) / float(self.numVariants)
+            self.likelyPathogenicProbabilities[year] = float(numLPClassified) / float(self.numVariants)
+
 
     def getYearNProbabilities(self, n):
         lbYearN = self.likelyBenignProbabilities[n]
@@ -543,9 +432,8 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
         mySimulation.prob(outputDir=outputDir)
-        #plot.plotAnyCenterProbability(mySimulation, outputDir, 'new')
-        #plot.plotAnyCenterProbability(mySimulation, outputDir, 'old')
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
+
 
     elif jobType == 'analyze':
         print('analyzing!')
