@@ -110,6 +110,12 @@ class Simulation:
         # similar for B and LB
         self.pathogenicVariantClassifications = dict()
         self.benignVariantClassifications = dict()
+        for year in range(self.years + 1):
+            self.benignVariantClassifications[year] = dict()
+            self.pathogenicVariantClassifications[year] = dict()
+            for variant in range(self.numVariants):
+                self.benignVariantClassifications[year][variant] = ''
+                self.pathogenicVariantClassifications[year][variant] = ''
 
         # construct lists of each type of center
         self.smallCenters = list()
@@ -259,10 +265,10 @@ class TestCenter:
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
         self.pathogenicLRPs = dict()
-        self.benignProbabilities = defaultdict()
-        self.pathogenicProbabilities = defaultdict()
-        self.likelyBenignProbabilities = defaultdict()
-        self.likelyPathogenicProbabilities = defaultdict()
+        self.benignProbabilities = [0]
+        self.pathogenicProbabilities = [0]
+        self.likelyBenignProbabilities = [0]
+        self.likelyPathogenicProbabilities = [0]
 
         # create key for variant in each dict
         for variant in range(numVariants):
@@ -343,10 +349,7 @@ class TestCenter:
         P = simulation.thresholds[4]
 
 
-        for year in range(simulation.years + 1):
-            if self.name != 'all':
-                simulation.pathogenicVariantClassifications[year] = dict()
-                simulation.benignVariantClassifications[year] = dict()
+        for year in range(1, simulation.years + 1):
             pLRPs = list()
             bLRPs = list()
             for variant in range(self.numVariants):
@@ -371,7 +374,7 @@ class TestCenter:
                         break
                     elif lrp > LP and lrp <= P:
                         numLPClassified += 1
-                        if self.name != 'all':
+                        if self.name != 'all' and simulation.pathogenicVariantClassifications[year][variant] != 'P':
                             simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp in bLRPs[variant]:
@@ -382,13 +385,13 @@ class TestCenter:
                         break
                     elif lrp < LB and lrp >= B:
                         numLBClassified +=1
-                        if self.name != 'all':
+                        if self.name != 'all' and simulation.benignVariantClassifications[year][variant] != 'B':
                             simulation.benignVariantClassifications[year][variant] = 'LB'
                         break
-            self.benignProbabilities[year] = float(numBClassified) / float(self.numVariants)
-            self.pathogenicProbabilities[year] = float(numPClassified) / float(self.numVariants)
-            self.likelyBenignProbabilities[year] = float(numLBClassified) / float(self.numVariants)
-            self.likelyPathogenicProbabilities[year] = float(numLPClassified) / float(self.numVariants)
+            self.benignProbabilities.append(float(numBClassified) / float(self.numVariants))
+            self.pathogenicProbabilities.append(float(numPClassified) / float(self.numVariants))
+            self.likelyBenignProbabilities.append(float(numLBClassified) / float(self.numVariants))
+            self.likelyPathogenicProbabilities.append(float(numLPClassified) / float(self.numVariants))
 
 
     def getYearNProbabilities(self, n):

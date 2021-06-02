@@ -10,12 +10,10 @@ def plotLRPScatter(simulation, center, year, outputDir):
     for variant in range(center.numVariants):
         pathogenic_y.append(list())
         pathogenic_y[variant].append(0)
-        for i in range(0, year):
-            pathogenic_y[variant].append(center.pathogenicLRPs[variant][i])
+        pathogenic_y[variant] += center.pathogenicLRPs[variant][0:year]
         benign_y.append(list())
         benign_y[variant].append(0)
-        for i in range(0, year):
-            benign_y[variant].append(center.benignLRPs[variant][i])
+        benign_y[variant] += center.benignLRPs[variant][0:year]
 
     yearList = [i for i in range(0, year+1)]
     x = yearList
@@ -114,50 +112,34 @@ def plotLRPHist(simulation, center, year, outputDir):
 
 def plotAnyCenterProbability(simulation, outputDir, version):
 
-    yearList = [i for i in range(0, simulation.years + 1)]
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
-    if version == 'new':
-        PanyCenter = []
-        BanyCenter = []
-        LPanyCenter = []
-        LBanyCenter = []
-        for year in yearList:
-            PanyCenter.append(simulation.probabilityUnions[year]['P'])
-            BanyCenter.append(simulation.probabilityUnions[year]['B'])
-            LPanyCenter.append(simulation.probabilityUnions[year]['LP'])
-            LBanyCenter.append(simulation.probabilityUnions[year]['LB'])
-    elif version == 'old':
-        PanyCenter = simulation.PanyCenter
-        LPanyCenter = simulation.LPanyCenter
-        BanyCenter = simulation.BanyCenter
-        LBanyCenter = simulation.LBanyCenter
-    else:
-        PanyCenter = []
-        BanyCenter = []
-        LPanyCenter = []
-        LBanyCenter = []
-        for year in yearList:
-            pSum = 0
-            bSum = 0
-            lpSum = 0
-            lbSum = 0
-            for variant in simulation.benignVariantClassifications[year]:
-                if simulation.benignVariantClassifications[year][variant] == 'B':
-                    bSum += 1
-                elif simulation.benignVariantClassifications[year][variant] == 'LB':
-                    lbSum += 1
-            BanyCenter.append(float(bSum) / float(simulation.numVariants))
-            LBanyCenter.append(float(lbSum / float(simulation.numVariants)))
-            for variant in simulation.pathogenicVariantClassifications[year]:
-                if simulation.pathogenicVariantClassifications[year][variant] == 'P':
-                    pSum += 1
-                elif simulation.pathogenicVariantClassifications[year][variant] == 'LP':
-                    lpSum += 1
-            PanyCenter.append(float(pSum) / float(simulation.numVariants))
-            LPanyCenter.append(float(lpSum / float(simulation.numVariants)))
+    PanyCenter = []
+    BanyCenter = []
+    LPanyCenter = []
+    LBanyCenter = []
 
+    for year in range(0, simulation.years+1):
+        pSum = 0
+        bSum = 0
+        lpSum = 0
+        lbSum = 0
+        for variant in simulation.benignVariantClassifications[year]:
+            if simulation.benignVariantClassifications[year][variant] == 'B':
+                bSum += 1
+            elif simulation.benignVariantClassifications[year][variant] == 'LB':
+                lbSum += 1
+        BanyCenter.append(float(bSum) / float(simulation.numVariants))
+        LBanyCenter.append(float(lbSum / float(simulation.numVariants)))
+        for variant in simulation.pathogenicVariantClassifications[year]:
+            if simulation.pathogenicVariantClassifications[year][variant] == 'P':
+                pSum += 1
+            elif simulation.pathogenicVariantClassifications[year][variant] == 'LP':
+                lpSum += 1
+        PanyCenter.append(float(pSum) / float(simulation.numVariants))
+        LPanyCenter.append(float(lpSum / float(simulation.numVariants)))
 
+    yearList = [i for i in range(0, simulation.years + 1)]
     plt.plot(yearList, PanyCenter, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, BanyCenter, marker='.', color='green', label='benign')
     plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
@@ -182,20 +164,11 @@ def plotProbability(simulation, center, outputDir):
     #ax = plt.figure(figsize=(8, 6)).gca()
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
     #ax.set_title('stacked bar')
-    bProbabilities = []
-    lbProbabilities = []
-    pProbabilities = []
-    lpProbabilities = []
-    for year in range(simulation.years + 1):
-        bProbabilities.append(center.benignProbabilities[year])
-        lbProbabilities.append(center.likelyBenignProbabilities[year])
-        pProbabilities.append(center.pathogenicProbabilities[year])
-        lpProbabilities.append(center.pathogenicProbabilities[year])
 
-    plt.plot(yearList, pProbabilities, marker='.', color='red', label='pathogenic')
-    plt.plot(yearList, bProbabilities, marker='.', color='green', label='benign')
-    plt.plot(yearList, lpProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, lbProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
+    plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
+    plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
