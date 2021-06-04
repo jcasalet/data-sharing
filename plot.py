@@ -166,12 +166,12 @@ def plotProbability(simulation, center, outputDir):
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
     #ax.set_title('stacked bar')
 
-    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
+    '''plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
     plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
-    '''plt.ylabel('probability of classification', fontsize=18)
+    plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     #plt.title(center.name)
     #plt.legend(loc='upper left', prop= {'size': 8} )
