@@ -161,6 +161,8 @@ def plotProbability(simulation, center, outputDir):
     yearList = numpy.arange(simulation.years + 1)
     plt.xlim(0, simulation.years + 1)
     plt.ylim(0, 2)
+    
+    dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     #ax = plt.figure(figsize=(8, 6)).gca()
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
