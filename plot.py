@@ -157,9 +157,10 @@ def plotAnyCenterProbability(simulation, outputDir, version):
 
 def plotProbability(simulation, center, outputDir):
 
-    yearList = [i for i in range(0, simulation.years + 1)]
-    plt.xlim(0, simulation.years)
-    plt.ylim(0, 1)
+    #yearList = [i for i in range(0, simulation.years + 1)]
+    yearList = numpy.arange(simulation.years + 1)
+    plt.xlim(0, simulation.years + 1)
+    plt.ylim(0, 2)
 
     #ax = plt.figure(figsize=(8, 6)).gca()
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
@@ -170,7 +171,7 @@ def plotProbability(simulation, center, outputDir):
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
     plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
-    plt.ylabel('probability of classification', fontsize=18)
+    '''plt.ylabel('probability of classification', fontsize=18)
     plt.xlabel('year', fontsize=18)
     #plt.title(center.name)
     #plt.legend(loc='upper left', prop= {'size': 8} )
@@ -178,6 +179,24 @@ def plotProbability(simulation, center, outputDir):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
+    plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
+                center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
+                dpi=300)
+    plt.close()'''
+
+    y1 = numpy.array(center.likelyBenignProbabilities)
+    y2 = numpy.array(center.benignProbabilities)
+    y3 = numpy.array(center.likelyPathogenicProbabilities)
+    y4 = numpy.array(center.pathogenicProbabilities)
+    width = 0.25
+    plt.bar(yearList, y1, color='blue', width=0.25, align='edge')
+    plt.bar(yearList, y2, bottom=y1, color='green', width=0.25, align='edge')
+    plt.bar(yearList + width, y3, color='orange', width=0.25, align='edge')
+    plt.bar(yearList + width, y4, bottom=y3, color='red', width=0.25, align='edge')
+    plt.xlabel("year")
+    plt.ylabel("probability of classification", fontsize=18)
+    plt.legend(["likely benign", "benign", "likely pathogenic", "pathogenic"])
+    #plt.title("years=" + str(simulation.years) + ",freq=" + str(simulation.frequency))
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
                 center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
                 dpi=300)
