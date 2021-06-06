@@ -160,15 +160,15 @@ def plotProbability(simulation, center, outputDir):
     #yearList = [i for i in range(0, simulation.years + 1)]
     yearList = numpy.arange(simulation.years + 1)
     plt.xlim(0, simulation.years + 1)
-    plt.ylim(0, 2)
-    
+    plt.ylim(0, 1)
+
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     #ax = plt.figure(figsize=(8, 6)).gca()
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
     #ax.set_title('stacked bar')
 
-    '''plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
+    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
     plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
     plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
@@ -184,9 +184,9 @@ def plotProbability(simulation, center, outputDir):
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
                 center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
                 dpi=300)
-    plt.close()'''
+    plt.close()
 
-    y1 = numpy.array(center.likelyBenignProbabilities)
+    '''y1 = numpy.array(center.likelyBenignProbabilities)
     y2 = numpy.array(center.benignProbabilities)
     y3 = numpy.array(center.likelyPathogenicProbabilities)
     y4 = numpy.array(center.pathogenicProbabilities)
@@ -202,4 +202,4 @@ def plotProbability(simulation, center, outputDir):
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
                 center.name + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
                 dpi=300)
-    plt.close()
+    plt.close()'''
