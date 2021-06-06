@@ -157,9 +157,9 @@ def plotAnyCenterProbability(simulation, outputDir, version):
 
 def plotProbability(simulation, center, outputDir):
 
-    #yearList = [i for i in range(0, simulation.years + 1)]
-    yearList = numpy.arange(simulation.years + 1)
-    plt.xlim(0, simulation.years + 1)
+    yearList = [i for i in range(0, simulation.years + 1)]
+    #yearList = numpy.arange(simulation.years + 1)
+    plt.xlim(0, simulation.years+1)
     plt.ylim(0, 1)
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
