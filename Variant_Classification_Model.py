@@ -443,24 +443,24 @@ class TestCenter:
             for variant in range(self.numVariants):
                 for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
                     posterior = lrp - freqp
-                    if lrp > P:
+                    if posterior > P:
                         numPClassified += 1
                         if self.name != 'all':
                             simulation.pathogenicVariantClassifications[year][variant] = 'P'
                         break
-                    elif lrp > LP and lrp <= P:
+                    elif posterior > LP and posterior <= P:
                         numLPClassified += 1
                         if self.name != 'all' and simulation.pathogenicVariantClassifications[year][variant] != 'P':
                             simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp, freqp in zip(bLRPs[variant], bFreqPs[variant]):
                     posterior = lrp - freqp
-                    if lrp < B:
+                    if posterior < B:
                         numBClassified += 1
                         if self.name != 'all':
                             simulation.benignVariantClassifications[year][variant] = 'B'
                         break
-                    elif lrp < LB and lrp >= B:
+                    elif posterior < LB and posterior >= B:
                         numLBClassified +=1
                         if self.name != 'all' and simulation.benignVariantClassifications[year][variant] != 'B':
                             simulation.benignVariantClassifications[year][variant] = 'LB'
