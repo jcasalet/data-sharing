@@ -8,6 +8,7 @@ from collections import defaultdict
 import utils
 import plot
 from evidence import Evidence
+import math
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -440,13 +441,13 @@ class TestCenter:
             numLPClassified = 0
             numLBClassified = 0
 
-            P_benign_prior = 0.95
-            P_pathogenic_prior = 0.05
+            P_benign_prior = math.log(0.90)
+            P_pathogenic_prior = math.log(0.10)
             for variant in range(self.numVariants):
                 for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
-                    #posterior = P_pathogenic_prior * (lrp - freqp)
-                    posterior = P_pathogenic_prior * (lrp)
-
+                    #log_posterior = P_pathogenic_prior + (lrp - freqp)
+                    #posterior = 10 ** log_posterior
+                    posteriror = lrp
                     if posterior > P:
                         numPClassified += 1
                         if self.name != 'all':
@@ -459,8 +460,7 @@ class TestCenter:
                         break
                 for lrp, freqp in zip(bLRPs[variant], bFreqPs[variant]):
                     #posterior = P_benign_prior * (lrp - freqp)
-                    posterior = P_benign_prior * (lrp)
-
+                    posterior = lrp
                     if posterior < B:
                         numBClassified += 1
                         if self.name != 'all':
