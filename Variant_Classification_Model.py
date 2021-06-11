@@ -7,6 +7,7 @@ from multiprocessing import Process, Queue, cpu_count
 from collections import defaultdict
 import utils
 import plot
+from evidence import Evidence
 
 logger = logging.getLogger()
 defaultLogLevel = "INFO"
@@ -19,6 +20,7 @@ logger.addHandler(ch)
 logger.debug("Established logger")
 
 
+        
 
 class Configuration:
     # this class reads in the JSON config file and stores the JSON data
@@ -53,15 +55,15 @@ class Simulation:
 
         constants = config['constants']
 
-        # p represents the ACMG evidence criteria for pathogenic variants
-        self.p = {'p0': constants['p0']['med'], 'p1_M3': constants['p1_PM3']['med'], 'p2_PM6': constants['p2_PM6']['med'],
+        # p represents the ACMG evidence criteria priors for pathogenic variants
+        self.p_priors = {'p0': constants['p0']['med'], 'p1_M3': constants['p1_PM3']['med'], 'p2_PM6': constants['p2_PM6']['med'],
                   'p3_BS2': constants['p3_BS2']['med'], 'p4_BP2': float(eval(constants['p4_BP2']['med'])),
                   'p5_BP5': constants['p5_BP5']['med'], 'p6_PP1': constants['p6_PP1']['med'],
                   'p7_PS2': constants['p7_PS2']['med'], 'p8_BS4': constants['p8_BS4']['med']}
 
 
-        # b represents the ACMG evidence criteria for benign variants
-        self.b = {'b0': constants['b0']['med'], 'b1_PM3': constants['b1_PM3']['med'], 'b2_PM6': constants['b2_PM6']['med'],
+        # b represents the ACMG evidence criteria priors for benign variants
+        self.b_priors = {'b0': constants['b0']['med'], 'b1_PM3': constants['b1_PM3']['med'], 'b2_PM6': constants['b2_PM6']['med'],
                   'b3_BS2': constants['b3_BS2']['med'], 'b4_BP2': float(eval(constants['b4_BP2']['med'])),
                   'b5_BP5': constants['b5_BP5']['med'], 'b6_PP1': constants['b6_PP1']['med'],
                   'b7_PS2': constants['b7_PS2']['med'], 'b8_BS4': constants['b8_BS4']['med']}
@@ -71,22 +73,22 @@ class Simulation:
             pass
         elif self.saParam.startswith('p'):
             if type(constants[self.saParam][self.saType]) is str:
-                self.p[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+                self.p_priors[self.saParam] = eval(str(constants[self.saParam][self.saType]))
             else:
-                self.p[self.saParam] = constants[self.saParam][self.saType]
+                self.p_priors[self.saParam] = constants[self.saParam][self.saType]
         elif self.saParam.startswith('b'):
             if type(constants[self.saParam][self.saType]) is str:
-                self.b[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+                self.b_priors[self.saParam] = eval(str(constants[self.saParam][self.saType]))
             else:
-                self.b[self.saParam] = constants[self.saParam][self.saType]
+                self.b_priors[self.saParam] = constants[self.saParam][self.saType]
         else:
             logger.error('unknown saParam: ' + str(self.saParam))
             sys.exit(1)
 
-        # P represents the LRs for pathogenic evidence (strong, moderate, supporting)
-        self.P = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
-        # B represents the LRs for benign evidence (strong, and supporting)
-        self.B = {'BS': constants['BS'], 'BP': constants['BP']}
+        # P_bayesian_LRs represents the LRs for pathogenic evidence (strong, moderate, supporting)
+        self.P_bayesian_LRs = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
+        # B_bayesian_LRs represents the LRs for benign evidence (strong, and supporting)
+        self.B_bayesian_LRs = {'BS': constants['BS'], 'BP': constants['BP']}
 
         # PSF is the pathogenic selection factor --> how much more likely is someone to have a pathogenic variant
         self.PSF = constants['PSF']
@@ -156,7 +158,7 @@ class Simulation:
                     p.start()
                     processList.append(p)
                 for i in range(self.numThreads):
-                    self.updateLRsAndLRPs(center, q.get())
+                    self.mergeDataFromThread(center, q.get())
                 for i in range(self.numThreads):
                     processList[i].join()
                 # combine LRs from each center into all centers object
@@ -169,16 +171,25 @@ class Simulation:
         for variant in range(self.numVariants):
             # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
             self.allCenters.benignLRPs[variant].append(utils.calculateSumOfLogs(self.allCenters.benignLRs[variant]))
+            self.allCenters.benignEvidenceFreqPs[variant].append(utils.calculateSumOfLogs(self.allCenters.benignEvidenceFreqs[variant]))
             # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
             self.allCenters.pathogenicLRPs[variant].append(utils.calculateSumOfLogs(self.allCenters.pathogenicLRs[variant]))
+            self.allCenters.pathogenicEvidenceFreqPs[variant].append(utils.calculateSumOfLogs((self.allCenters.pathogenicEvidenceFreqs[variant])))
 
     def combineAllLRsFromCenter(self, center, year):
         # just add the sublists for the variant for that year from each center to all centers object
         for variant in range(self.numVariants):
             self.allCenters.pathogenicLRs[variant].append([])
+            self.allCenters.pathogenicEvidenceFreqs[variant].append([])
+
             self.allCenters.pathogenicLRs[variant][year] += center.pathogenicLRs[variant][year]
+            self.allCenters.pathogenicEvidenceFreqs[variant][year] += center.pathogenicEvidenceFreqs[variant][year]
+
             self.allCenters.benignLRs[variant].append([])
+            self.allCenters.benignEvidenceFreqs[variant].append([])
+
             self.allCenters.benignLRs[variant][year] += center.benignLRs[variant][year]
+            self.allCenters.benignEvidenceFreqs[variant][year] += center.benignEvidenceFreqs[variant][year]
 
     def run(self):
         # run simulation over years
@@ -195,7 +206,7 @@ class Simulation:
                         p.start()
                         processList.append(p)
                     for i in range(self.numThreads):
-                        self.updateLRsAndLRPs(center, q.get())
+                        self.mergeDataFromThread(center, q.get())
                     for i in range(self.numThreads):
                         processList[i].join()
                     self.combineAllLRsFromCenter(center, year)
@@ -215,20 +226,31 @@ class Simulation:
                 print("LP prob: " + str(center.likelyPathogenicProbabilities[year]))
         print("classification: " + self.pathogenicVariantClassifications[year][variant])
 
-    def updateLRsAndLRPs(self, center, q):
+    def mergeDataFromThread(self, center, q):
         plrs = q[0]
-        blrs = q[1]
+        pfreqs = q[1]
+        blrs = q[2]
+        bfreqs = q[3]
+
         for p in plrs:
             center.pathogenicLRs[p].append(plrs[p][0])
+        for p in pfreqs:
+            center.pathogenicEvidenceFreqs[p].append(pfreqs[p][0])
         for b in blrs:
             center.benignLRs[b].append(blrs[b][0])
+        for b in bfreqs:
+            center.benignEvidenceFreqs[b].append(bfreqs[b][0])
 
         # calculate log(product(LRs)) = sum (log(LRs)) for pathogenic LRs
         for p in plrs:
             center.pathogenicLRPs[p].append(utils.calculateSumOfLogs(center.pathogenicLRs[p]))
+        for p in pfreqs:
+            center.pathogenicEvidenceFreqPs[p].append(utils.calculateSumOfLogs(center.pathogenicEvidenceFreqs[p]))
         # calculate log(product(LRs)) = sum (log(LRs)) for benign LRs
         for b in blrs:
             center.benignLRPs[b].append(utils.calculateSumOfLogs(center.benignLRs[b]))
+        for b in bfreqs:
+            center.benignEvidenceFreqPs[b].append(utils.calculateSumOfLogs(center.benignEvidenceFreqs[b]))
 
     def scatter(self, outputDir):
         for year in [self.years]:
@@ -264,7 +286,11 @@ class TestCenter:
         self.benignLRs = dict()
         self.pathogenicLRs = dict()
         self.benignLRPs = dict()
+        self.benignEvidenceFreqs = dict()
+        self.benignEvidenceFreqPs = dict()
         self.pathogenicLRPs = dict()
+        self.pathogenicEvidenceFreqs = dict()
+        self.pathogenicEvidenceFreqPs = dict()
         self.benignProbabilities = [0]
         self.pathogenicProbabilities = [0]
         self.likelyBenignProbabilities = [0]
@@ -276,6 +302,10 @@ class TestCenter:
             self.pathogenicLRs[variant] = list()
             self.benignLRPs[variant] = list()
             self.pathogenicLRPs[variant] = list()
+            self.benignEvidenceFreqs[variant] = list()
+            self.pathogenicEvidenceFreqs[variant] = list()
+            self.benignEvidenceFreqPs[variant] = list()
+            self.pathogenicEvidenceFreqPs[variant] = list()
 
 
     def runSimulation(self, simulation, numTests, numThreads, threadID, q, rng):
@@ -288,21 +318,25 @@ class TestCenter:
 
         # keep track of likelihood ratios for each variant in local variable
         pLRs = dict()
+        pFreqs = dict()
         bLRs = dict()
+        bFreqs = dict()
 
         # loop thru all the variants assigned to this thread
         for variant in range(start, end):
             # each variant will get a list of LRs assigned to it as evidence
             pLRs[variant] = list()
+            pFreqs[variant] = list()
             bLRs[variant] = list()
+            bFreqs[variant] = list()
 
             # generate pool of observations of variant (assumed pathogenic)
-            pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p,
-                            simulation.P, simulation.B, numTests)
+            pathogenicObservations = self.generatePathogenicObservationsFromTests(simulation.p_priors,
+                            simulation.P_bayesian_LRs, simulation.B_bayesian_LRs, numTests)
 
             # generate pool of observations of variant (assumed benign)
-            benignObservations = self.generateBenignObservationsFromTests(simulation.b, simulation.P,
-                                                                    simulation.B, numTests)
+            benignObservations = self.generateBenignObservationsFromTests(simulation.b_priors,
+                            simulation.P_bayesian_LRs, simulation.B_bayesian_LRs, numTests)
 
             # use Poisson distribution to get number of people with that variant in this batch of tests
             numPeopleWithVariant = utils.sampleNumberOfPeopleWithVariant(numTests, simulation.frequency, rng)
@@ -311,35 +345,64 @@ class TestCenter:
             numExpectedBenign, numExpectedPathogenic = utils.getExpectedNumsFromPSF(numPeopleWithVariant, simulation.PSF)
 
             # generate evidence for observations assumed pathogenic
-            pLRs[variant].append(utils.sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations, rng))
+            evidenceForPathogenicVariant = utils.sampleEvidenceFromObservations(numExpectedPathogenic, pathogenicObservations, rng)
+            sample_p_LRs = list()
+            sample_p_Freqs = list()
+            for e in evidenceForPathogenicVariant:
+                sample_p_LRs.append(e.lr)
+                sample_p_Freqs.append(e.freq)
+            pLRs[variant].append(sample_p_LRs)
+            pFreqs[variant].append(sample_p_Freqs)
 
             # generate evidence for observations assumed benign
-            bLRs[variant].append(utils.sampleEvidenceFromObservations(numExpectedBenign, benignObservations, rng))
+            evidenceForBenignVariant = utils.sampleEvidenceFromObservations(numExpectedBenign, benignObservations, rng)
+            sample_b_LRs = list()
+            sample_b_Freqs = list()
+            for e in evidenceForBenignVariant:
+                sample_b_LRs.append(e.lr)
+                sample_b_Freqs.append(e.freq)
+            bLRs[variant].append(sample_b_LRs)
+            bFreqs[variant].append(sample_b_Freqs)
 
-            # JC I put the steps to update the benignLRPs and pathogenicLRPs in the updateLRsAndLRPs() call b/c those calls
+            # JC I put the steps to update the benignLRPs and pathogenicLRPs in the mergeDataFromThread() call b/c those calls
             # need ALL of the LRs (current and previous years), not just the current year which is what is available
             # here
 
 
-        q.put([pLRs, bLRs])
+        q.put([pLRs, pFreqs, bLRs, bFreqs])
 
     def generatePathogenicObservationsFromTests(self, c, P, B, n):
-        Obs = \
-            [utils.rep(P['PM'], int(c['p2_PM6'] * n)) + utils.rep(B['BP'], int(c['p4_BP2'] * n)) +
-             utils.rep(B['BP'], int(c['p5_BP5'] * n)) + utils.rep(P['PP'], int(c['p6_PP1'] * n)) +
-             utils.rep(P['PS'], int(c['p7_PS2'] * n)) + utils.rep(B['BS'], int(c['p8_BS4'] * n)) +
-             utils.rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] +
-                                c['p7_PS2'] + c['p8_BS4'])) * n))]
-        return Obs[0]
+        '''return utils.rep(P['PM'], int(c['p2_PM6'] * n)) + utils.rep(B['BP'], int(c['p4_BP2'] * n)) + \
+             utils.rep(B['BP'], int(c['p5_BP5'] * n)) + utils.rep(P['PP'], int(c['p6_PP1'] * n)) + \
+             utils.rep(P['PS'], int(c['p7_PS2'] * n)) + utils.rep(B['BS'], int(c['p8_BS4'] * n)) + \
+             utils.rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
+                                c['p7_PS2'] + c['p8_BS4'])) * n))'''
+        return utils.rep(Evidence(P['PM'], c['p2_PM6']), int(c['p2_PM6'] * n)) + \
+               utils.rep(Evidence(B['BP'], c['p4_BP2']), int(c['p4_BP2'] * n)) + \
+               utils.rep(Evidence(B['BP'], c['p5_BP5']), int(c['p5_BP5'] * n)) + \
+               utils.rep(Evidence(P['PP'], c['p6_PP1']), int(c['p6_PP1'] * n)) + \
+               utils.rep(Evidence(P['PS'], c['p7_PS2']), int(c['p7_PS2'] * n)) + \
+               utils.rep(Evidence(B['BS'], c['p8_BS4']), int(c['p8_BS4'] * n)) + \
+               utils.rep(Evidence(1.0, 1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
+                            c['p7_PS2'] + c['p8_BS4'])),  int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
+                            c['p7_PS2'] + c['p8_BS4'])* n)))
 
     def generateBenignObservationsFromTests(self, c, P, B, n):
-        Obs = \
-            [utils.rep(P['PM'], int(c['b2_PM6'] * n)) + utils.rep(B['BP'], int(c['b4_BP2'] * n)) +
-             utils.rep(B['BP'], int(c['b5_BP5'] * n)) + utils.rep(P['PP'], int(c['b6_PP1'] * n)) +
-             utils.rep(P['PS'], int(c['b7_PS2'] * n)) + utils.rep(B['BS'], int(c['b8_BS4'] * n)) +
-             utils.rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5']  + c['b6_PP1'] +
-                                c['b7_PS2'] + c['b8_BS4'])) * n))]
-        return Obs[0]
+        '''return utils.rep(P['PM'], int(c['b2_PM6'] * n)) + utils.rep(B['BP'], int(c['b4_BP2'] * n)) + \
+             utils.rep(B['BP'], int(c['b5_BP5'] * n)) + utils.rep(P['PP'], int(c['b6_PP1'] * n)) + \
+             utils.rep(P['PS'], int(c['b7_PS2'] * n)) + utils.rep(B['BS'], int(c['b8_BS4'] * n)) + \
+             utils.rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5']  + c['b6_PP1'] + \
+                                c['b7_PS2'] + c['b8_BS4'])) * n))'''
+        return utils.rep(Evidence(P['PM'], c['b2_PM6']), int(c['b2_PM6'] * n)) + \
+               utils.rep(Evidence(B['BP'], c['b4_BP2']), int(c['b4_BP2'] * n)) + \
+               utils.rep(Evidence(B['BP'], c['b5_BP5']), int(c['b5_BP5'] * n)) + \
+               utils.rep(Evidence(P['PP'], c['b6_PP1']), int(c['b6_PP1'] * n)) + \
+               utils.rep(Evidence(P['PS'], c['b7_PS2']), int(c['b7_PS2'] * n)) + \
+               utils.rep(Evidence(B['BS'], c['b8_BS4']), int(c['b8_BS4'] * n)) + \
+               utils.rep(Evidence(1.0, 1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + \
+                                                 c['b7_PS2'] + c['b8_BS4'])),
+                         int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + \
+                                   c['b7_PS2'] + c['b8_BS4']) * n)))
 
     def probabilityOfClassification(self, simulation):
         LB = simulation.thresholds[0]
@@ -351,7 +414,9 @@ class TestCenter:
 
         for year in range(1, simulation.years + 1):
             pLRPs = list()
+            pFreqPs = list()
             bLRPs = list()
+            bFreqPs = list()
             for variant in range(self.numVariants):
                 pLRPs.append(list())
                 pLRPs[variant].append(0)
@@ -359,6 +424,12 @@ class TestCenter:
                 bLRPs.append(list())
                 bLRPs[variant].append(0)
                 bLRPs[variant] += self.benignLRPs[variant][year:year+1]
+                pFreqPs.append(list())
+                pFreqPs[variant].append(0)
+                pFreqPs[variant] += self.pathogenicEvidenceFreqPs[variant][year:year + 1]
+                bFreqPs.append(list())
+                bFreqPs[variant].append(0)
+                bFreqPs[variant] += self.benignEvidenceFreqPs[variant][year:year + 1]
 
             numPClassified = 0
             numBClassified = 0
@@ -366,7 +437,8 @@ class TestCenter:
             numLBClassified = 0
 
             for variant in range(self.numVariants):
-                for lrp in pLRPs[variant]:
+                for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
+                    posterior = lrp - freqp
                     if lrp > P:
                         numPClassified += 1
                         if self.name != 'all':
@@ -377,7 +449,8 @@ class TestCenter:
                         if self.name != 'all' and simulation.pathogenicVariantClassifications[year][variant] != 'P':
                             simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
-                for lrp in bLRPs[variant]:
+                for lrp, freqp in zip(bLRPs[variant], bFreqPs[variant]):
+                    posterior = lrp - freqp
                     if lrp < B:
                         numBClassified += 1
                         if self.name != 'all':
