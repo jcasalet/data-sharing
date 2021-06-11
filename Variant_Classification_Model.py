@@ -444,7 +444,9 @@ class TestCenter:
             P_pathogenic_prior = 0.05
             for variant in range(self.numVariants):
                 for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
-                    posterior = P_pathogenic_prior * (lrp - freqp)
+                    #posterior = P_pathogenic_prior * (lrp - freqp)
+                    posterior = P_pathogenic_prior * (lrp)
+
                     if posterior > P:
                         numPClassified += 1
                         if self.name != 'all':
@@ -456,7 +458,9 @@ class TestCenter:
                             simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp, freqp in zip(bLRPs[variant], bFreqPs[variant]):
-                    posterior = P_benign_prior * (lrp - freqp)
+                    #posterior = P_benign_prior * (lrp - freqp)
+                    posterior = P_benign_prior * (lrp)
+
                     if posterior < B:
                         numBClassified += 1
                         if self.name != 'all':
