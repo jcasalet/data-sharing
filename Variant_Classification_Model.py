@@ -377,15 +377,18 @@ class TestCenter:
              utils.rep(P['PS'], int(c['p7_PS2'] * n)) + utils.rep(B['BS'], int(c['p8_BS4'] * n)) + \
              utils.rep(1.0, int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
                                 c['p7_PS2'] + c['p8_BS4'])) * n))'''
-        return utils.rep(Evidence(P['PM'], c['p2_PM6']), int(c['p2_PM6'] * n)) + \
+
+        Obs =utils.rep(Evidence(P['PM'], c['p2_PM6']), int(c['p2_PM6'] * n)) + \
                utils.rep(Evidence(B['BP'], c['p4_BP2']), int(c['p4_BP2'] * n)) + \
                utils.rep(Evidence(B['BP'], c['p5_BP5']), int(c['p5_BP5'] * n)) + \
                utils.rep(Evidence(P['PP'], c['p6_PP1']), int(c['p6_PP1'] * n)) + \
                utils.rep(Evidence(P['PS'], c['p7_PS2']), int(c['p7_PS2'] * n)) + \
                utils.rep(Evidence(B['BS'], c['p8_BS4']), int(c['p8_BS4'] * n)) + \
                utils.rep(Evidence(1.0, 1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
-                            c['p7_PS2'] + c['p8_BS4'])),  int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
-                            c['p7_PS2'] + c['p8_BS4'])* n)))
+                        c['p7_PS2'] + c['p8_BS4'])),  int((1 - (c['p2_PM6'] + c['p4_BP2'] + c['p5_BP5'] + c['p6_PP1'] + \
+                        c['p7_PS2'] + c['p8_BS4']))* n))
+
+        return Obs
 
     def generateBenignObservationsFromTests(self, c, P, B, n):
         '''return utils.rep(P['PM'], int(c['b2_PM6'] * n)) + utils.rep(B['BP'], int(c['b4_BP2'] * n)) + \
@@ -393,16 +396,17 @@ class TestCenter:
              utils.rep(P['PS'], int(c['b7_PS2'] * n)) + utils.rep(B['BS'], int(c['b8_BS4'] * n)) + \
              utils.rep(1.0, int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5']  + c['b6_PP1'] + \
                                 c['b7_PS2'] + c['b8_BS4'])) * n))'''
-        return utils.rep(Evidence(P['PM'], c['b2_PM6']), int(c['b2_PM6'] * n)) + \
+        Obs = utils.rep(Evidence(P['PM'], c['b2_PM6']), int(c['b2_PM6'] * n)) + \
                utils.rep(Evidence(B['BP'], c['b4_BP2']), int(c['b4_BP2'] * n)) + \
                utils.rep(Evidence(B['BP'], c['b5_BP5']), int(c['b5_BP5'] * n)) + \
                utils.rep(Evidence(P['PP'], c['b6_PP1']), int(c['b6_PP1'] * n)) + \
                utils.rep(Evidence(P['PS'], c['b7_PS2']), int(c['b7_PS2'] * n)) + \
                utils.rep(Evidence(B['BS'], c['b8_BS4']), int(c['b8_BS4'] * n)) + \
                utils.rep(Evidence(1.0, 1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + \
-                                                 c['b7_PS2'] + c['b8_BS4'])),
-                         int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + \
-                                   c['b7_PS2'] + c['b8_BS4']) * n)))
+                        c['b7_PS2'] + c['b8_BS4'])), int((1 - (c['b2_PM6'] + c['b4_BP2'] + c['b5_BP5'] + c['b6_PP1'] + \
+                        c['b7_PS2'] + c['b8_BS4'])) * n))
+
+        return Obs
 
     def probabilityOfClassification(self, simulation):
         LB = simulation.thresholds[0]
