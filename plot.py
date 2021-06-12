@@ -87,11 +87,11 @@ def plotLRPHist(simulation, center, year, outputDir):
     plt.ylim(0, 1)
 
 
-    plt.axvline(x=simulation.thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=simulation.thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=simulation.thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
-    plt.axvline(x=simulation.thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.benignThreshold, color='green', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.likelyBenignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.neutralThreshold, color='black', linestyle='dashed', linewidth=1.0)
+    plt.axvline(x=simulation.likelyPathogenicThreshold, color='orange', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.pathogenicThreshold, color='red', linestyle='dashed', linewidth=0.75)
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
