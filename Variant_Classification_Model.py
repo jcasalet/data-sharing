@@ -410,11 +410,11 @@ class TestCenter:
         return Obs
 
     def probabilityOfClassification(self, simulation):
-        LB = -1.0 * math.log(abs(simulation.thresholds[0]))
-        B = -1.0 * math.log(abs(simulation.thresholds[1]))
+        LB = simulation.thresholds[0]
+        B = simulation.thresholds[1]
         # neutral = simulation.thresholds[2]
-        LP = math.log(simulation.thresholds[3])
-        P = math.log(simulation.thresholds[4])
+        LP = simulation.thresholds[3]
+        P = simulation.thresholds[4]
 
 
         for year in range(1, simulation.years + 1):
@@ -441,32 +441,25 @@ class TestCenter:
             numLPClassified = 0
             numLBClassified = 0
 
-            P_benign_prior = math.log(0.90)
-            P_pathogenic_prior = math.log(0.10)
             for variant in range(self.numVariants):
                 for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
-                    #log_posterior = P_pathogenic_prior + (lrp - freqp)
-                    #posterior = 10 ** log_posterior
-                    posterior = lrp
-                    if posterior > P:
+                    if lrp > P:
                         numPClassified += 1
                         if self.name != 'all':
                             simulation.pathogenicVariantClassifications[year][variant] = 'P'
                         break
-                    elif posterior > LP and posterior <= P:
+                    elif lrp > LP and lrp <= P:
                         numLPClassified += 1
                         if self.name != 'all' and simulation.pathogenicVariantClassifications[year][variant] != 'P':
                             simulation.pathogenicVariantClassifications[year][variant] = 'LP'
                         break
                 for lrp, freqp in zip(bLRPs[variant], bFreqPs[variant]):
-                    #posterior = P_benign_prior * (lrp - freqp)
-                    posterior = lrp
-                    if posterior < B:
+                    if lrp < B:
                         numBClassified += 1
                         if self.name != 'all':
                             simulation.benignVariantClassifications[year][variant] = 'B'
                         break
-                    elif posterior < LB and posterior >= B:
+                    elif lrp < LB and lrp >= B:
                         numLBClassified +=1
                         if self.name != 'all' and simulation.benignVariantClassifications[year][variant] != 'B':
                             simulation.benignVariantClassifications[year][variant] = 'LB'

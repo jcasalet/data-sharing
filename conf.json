@@ -63,7 +63,7 @@
 			},
     		"b2_PM6": {
 				"low": 0.0007,
-				"med": 0.007,
+				"med": 0.0035,
 				"hi": 0.01
 			},
     		"b3_BS2": {
@@ -88,7 +88,7 @@
 			},
     		"b7_PS2": {
 				"low": 0.0001,
-				"med": 0.003,
+				"med": 0.0015,
 				"hi": 0.005
 			},
     		"b8_BS4": {
@@ -102,20 +102,20 @@
     		"BS": 0.053475935828877004,
     		"BP": 0.4807692307692307,
     		"PSF": 2.0,
-		"benignThreshold": -1.256958152560932,
-		"likelyBenignThreshold": -3,
+		"benignThreshold": -3,
+		"likelyBenignThreshold": -1.256958152560932,
 		"likelyPathogenicThreshold": 1.256958152560932,
 		"pathogenicThreshold": 2.0
 	},
 	"simulation": {
 		"name": "mySim",
-		"nSmall": 10,
-		"nMedium": 7,
-		"nLarge": 3,
-		"numVariants": 1000,
+		"nSmall": 0,
+		"nMedium": 0,
+		"nLarge": 1,
+		"numVariants": 1,
 		"frequency": 1e-5,
 		"years": 5,
 		"seed": 18,
-		"numThreads": 2
+		"numThreads": 1
 	}
 }
