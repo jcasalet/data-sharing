@@ -107,7 +107,6 @@ class Simulation:
         self.likelyBenignThreshold = constants['likelyBenignThreshold']
         self.likelyPathogenicThreshold = constants['likelyPathogenicThreshold']
         self.pathogenicThreshold = constants['pathogenicThreshold']
-        self.thresholds = [self.benignThreshold, self.likelyBenignThreshold, 0, self.likelyPathogenicThreshold, self.pathogenicThreshold]
 
         # create dictionary for P and LP classifications pathogenicVariantClassifications[year][variant] = 'P' or 'LP'
         # similar for B and LB
@@ -410,11 +409,10 @@ class TestCenter:
         return Obs
 
     def probabilityOfClassification(self, simulation):
-        LB = simulation.thresholds[0]
-        B = simulation.thresholds[1]
-        # neutral = simulation.thresholds[2]
-        LP = simulation.thresholds[3]
-        P = simulation.thresholds[4]
+        B = simulation.benignThreshold
+        LB = simulation.likelyBenignThreshold
+        LP = simulation.likelyPathogenicThreshold
+        P = simulation.pathogenicThreshold
 
 
         for year in range(1, simulation.years + 1):
