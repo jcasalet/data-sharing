@@ -447,7 +447,7 @@ class TestCenter:
                 for lrp, freqp in zip(pLRPs[variant], pFreqPs[variant]):
                     #log_posterior = P_pathogenic_prior + (lrp - freqp)
                     #posterior = 10 ** log_posterior
-                    posteriror = lrp
+                    posterior = lrp
                     if posterior > P:
                         numPClassified += 1
                         if self.name != 'all':
