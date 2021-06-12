@@ -410,11 +410,11 @@ class TestCenter:
         return Obs
 
     def probabilityOfClassification(self, simulation):
-        LB = simulation.thresholds[0]
-        B = simulation.thresholds[1]
+        LB = math.log(simulation.thresholds[0])
+        B = math.log(simulation.thresholds[1])
         # neutral = simulation.thresholds[2]
-        LP = simulation.thresholds[3]
-        P = simulation.thresholds[4]
+        LP = math.log(simulation.thresholds[3])
+        P = math.log(simulation.thresholds[4])
 
 
         for year in range(1, simulation.years + 1):
