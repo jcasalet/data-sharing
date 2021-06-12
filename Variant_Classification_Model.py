@@ -410,8 +410,8 @@ class TestCenter:
         return Obs
 
     def probabilityOfClassification(self, simulation):
-        LB = math.log(simulation.thresholds[0])
-        B = math.log(simulation.thresholds[1])
+        LB = -1.0 * math.log(abs(simulation.thresholds[0]))
+        B = -1.0 * math.log(abs(simulation.thresholds[1]))
         # neutral = simulation.thresholds[2]
         LP = math.log(simulation.thresholds[3])
         P = math.log(simulation.thresholds[4])
