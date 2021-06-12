@@ -105,6 +105,7 @@ class Simulation:
         # thresholds from Tavtigian et al
         self.benignThreshold = constants['benignThreshold']
         self.likelyBenignThreshold = constants['likelyBenignThreshold']
+        self.neutralThreshold = constants['neutralThreshold']
         self.likelyPathogenicThreshold = constants['likelyPathogenicThreshold']
         self.pathogenicThreshold = constants['pathogenicThreshold']
 

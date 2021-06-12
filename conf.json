@@ -104,6 +104,7 @@
     		"PSF": 2.0,
 		"benignThreshold": -3,
 		"likelyBenignThreshold": -1.256958152560932,
+		"neutralThreshold": 0,
 		"likelyPathogenicThreshold": 1.256958152560932,
 		"pathogenicThreshold": 2.0
 	},

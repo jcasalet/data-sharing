@@ -21,11 +21,11 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.xlim(0, simulation.years)
     plt.ylim(-5, 5)
 
-    plt.axhline(y=simulation.thresholds[0], color='green', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=simulation.thresholds[1], color='blue', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=simulation.thresholds[2], color='black', linestyle='dashed', linewidth=1.0)
-    plt.axhline(y=simulation.thresholds[3], color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=simulation.thresholds[4], color='red', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.benignThreshold, color='green', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.likelyBenignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.neutralThreshold, color='black', linestyle='dashed', linewidth=1.0)
+    plt.axhline(y=simulation.likelyPathogenicThreshold, color='orange', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.pathogenicThreshold, color='red', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
         if center.numVariants <= 10:
