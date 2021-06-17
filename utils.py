@@ -20,7 +20,7 @@ def save_config(confFile, outputDir):
 
 def saveAllLRPs(types, parameters, allLRPs, outputDir):
     fileName = outputDir + '/allLRPs.csv'
-    indices = {0:'LB', 1:'B', 2: 'LP', 3:'P'}
+    indices = ['benign', 'pathogenic']
     with open(fileName, 'w') as f:
         print('parameters: ', end=' ', file=f)
         for p in parameters:
@@ -28,7 +28,7 @@ def saveAllLRPs(types, parameters, allLRPs, outputDir):
         for t in types:
             print(t, file=f)
             for i in indices:
-                print(t + '_' + indices[i] + ': ', end=',', file=f)
+                print(t + '_' + i + ': ', end=',', file=f)
                 for p in parameters:
                     print(allLRPs[t][p][i], end=' ', flush=True, file=f)
                 print(file=f)

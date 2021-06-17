@@ -474,7 +474,7 @@ class TestCenter:
         bYearN = self.benignProbabilities[n]
         lpYearN = self.likelyPathogenicProbabilities[n]
         pYearN = self.likelyBenignProbabilities[n]
-        return lbYearN, bYearN, lpYearN, pYearN
+        return {'benign': lbYearN + bYearN, 'pathogenic': lpYearN + pYearN}
 
 
 def runAnalysis(types, parameters, config, outputDir):
