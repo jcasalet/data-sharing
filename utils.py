@@ -64,14 +64,11 @@ def rpois(num, lam, rng):
     return rng.poisson(lam, num)
 
 def sample(theList, numSamples, replace, rng):
-    #numpy.random.seed()
     if len(theList) == 0:
         return []
     if numSamples > 1:
-        #return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
         return list(rng.choice(a=theList, size=numSamples, replace=replace))
     elif numSamples == 1:
-        #return list(numpy.random.choice(a=theList, size=numSamples, replace=replace))
         return list(rng.choice(a=theList, size=numSamples, replace=replace))
     else:
         return []
@@ -88,8 +85,8 @@ def getRandomUniformPriorLR(rng):
 
 def sampleEvidenceFromObservations(expectedNum, observations, rng):
     # assign random uniform prior LR as first piece of evidence
-    #initialEvidence = [Evidence(getRandomUniformPriorLR(rng), 1/len(observations))]
-    initialEvidence = [Evidence(getRandomUniformPriorLR(rng), 0.001)]
+    initialEvidence = [Evidence(getRandomUniformPriorLR(rng), 1/len(observations))]
+    #initialEvidence = [Evidence(getRandomUniformPriorLR(rng), 0.001)]
     sampleEvidence = sample(observations, int(expectedNum), replace=True, rng=rng)
     # pull out the lrs from the Evidence objects
     '''sampleLRs = list()
