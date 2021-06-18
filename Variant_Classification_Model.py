@@ -266,8 +266,8 @@ class Simulation:
                 plot.plotLRPHist(self, center, year, outputDir)
         plot.plotLRPHist(self, self.allCenters, year, outputDir)
 
-    def prob(self, outputDir):
-        for centers in self.centerListList:
+    def prob(self, outputDir, centerListList):
+        for centers in centerListList:
             for center in centers:
                 plot.plotProbability(self, center, outputDir)
         plot.plotProbability(self, self.allCenters,  outputDir)
@@ -486,7 +486,7 @@ def runAnalysis(types, parameters, config, outputDir):
             mySimulation.run()
             # mySimulation.scatter(outputDir=outputDir)
             # mySimulation.hist(outputDir=outputDir)
-            mySimulation.prob(outputDir=outputDir)
+            mySimulation.prob(outputDir=outputDir, centerListList = [[]])
             # mySimulation.save(outputDir=outputDir)
             allLRPs[t][p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
     return allLRPs
@@ -509,7 +509,7 @@ def main():
         mySimulation.run()
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
-        mySimulation.prob(outputDir=outputDir)
+        mySimulation.prob(outputDir=outputDir, centerListList=mySimulation.centerListList)
         plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
 
 
