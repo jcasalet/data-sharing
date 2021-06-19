@@ -19,6 +19,8 @@ def save_config(confFile, outputDir):
     copyfile(confFile, outputDir + '/' + fileName)
 
 def saveAllLRPs(types, parameters, allLRPs, outputDir):
+    #allLRPs[t][p] = t + '_' + p + '_' + str(mySimulation.constants[p][t]) + '_' + \
+                #str(mySimulation.allCenters.getYearNProbabilities(mySimulation.years))
     fileName = outputDir + '/allLRPs.csv'
     indices = ['benign', 'pathogenic']
     with open(fileName, 'w') as f:
@@ -30,7 +32,8 @@ def saveAllLRPs(types, parameters, allLRPs, outputDir):
             for i in indices:
                 print(t + '_' + i + ': ', end=',', file=f)
                 for p in parameters:
-                    print(allLRPs[t][p][i], end=' ', flush=True, file=f)
+                    #print(str(simulation.constants[p][t]) + '=' + str(allLRPs[t][p][i]), end=' ', flush=True, file=f)
+                    print(allLRPs[t][p], end=' ', flush=True, file=f)
                 print(file=f)
             print(file=f)
     f.close()

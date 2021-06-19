@@ -42,7 +42,7 @@ def plotLRPScatter(simulation, center, year, outputDir):
                 plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
                 plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
 
-    plt.ylabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
+    plt.ylabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=18)
     plt.xlabel('year', fontsize=18)
     #plt.title(centerName)
 
@@ -98,7 +98,7 @@ def plotLRPHist(simulation, center, year, outputDir):
     plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], color=['blue', 'orange'], density=True,
              range=(-15, 50), bins=bins)
 
-    plt.xlabel('evidence = ' + r'$\sum_{i} log(LR_i)$', fontsize=18)
+    plt.xlabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=18)
     plt.ylabel('probability mass', fontsize=18)
 
     #plt.legend(loc='upper right')

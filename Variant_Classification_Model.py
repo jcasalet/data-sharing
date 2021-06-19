@@ -54,60 +54,62 @@ class Simulation:
         self.seed = int(simulation['seed'])
         self.numThreads = simulation['numThreads']
 
-        constants = config['constants']
+        self.constants = config['constants']
 
         # p represents the ACMG evidence criteria priors for pathogenic variants
-        self.p_priors = {'p0': constants['p0']['med'], 'p1_M3': constants['p1_PM3']['med'], 'p2_PM6': constants['p2_PM6']['med'],
-                  'p3_BS2': constants['p3_BS2']['med'], 'p4_BP2': float(eval(constants['p4_BP2']['med'])),
-                  'p5_BP5': constants['p5_BP5']['med'], 'p6_PP1': constants['p6_PP1']['med'],
-                  'p7_PS2': constants['p7_PS2']['med'], 'p8_BS4': constants['p8_BS4']['med']}
+        self.p_priors = {'p0': self.constants['p0']['med'], 'p1_M3': self.constants['p1_PM3']['med'],
+                         'p2_PM6': self.constants['p2_PM6']['med'], 'p3_BS2': self.constants['p3_BS2']['med'],
+                         'p4_BP2': float(eval(self.constants['p4_BP2']['med'])), 'p5_BP5': self.constants['p5_BP5']['med'],
+                         'p6_PP1': self.constants['p6_PP1']['med'], 'p7_PS2': self.constants['p7_PS2']['med'],
+                         'p8_BS4': self.constants['p8_BS4']['med']}
 
 
         # b represents the ACMG evidence criteria priors for benign variants
-        self.b_priors = {'b0': constants['b0']['med'], 'b1_PM3': constants['b1_PM3']['med'], 'b2_PM6': constants['b2_PM6']['med'],
-                  'b3_BS2': constants['b3_BS2']['med'], 'b4_BP2': float(eval(constants['b4_BP2']['med'])),
-                  'b5_BP5': constants['b5_BP5']['med'], 'b6_PP1': constants['b6_PP1']['med'],
-                  'b7_PS2': constants['b7_PS2']['med'], 'b8_BS4': constants['b8_BS4']['med']}
+        self.b_priors = {'b0': self.constants['b0']['med'], 'b1_PM3': self.constants['b1_PM3']['med'],
+                         'b2_PM6': self.constants['b2_PM6']['med'], 'b3_BS2': self.constants['b3_BS2']['med'],
+                         'b4_BP2': float(eval(self.constants['b4_BP2']['med'])), 'b5_BP5': self.constants['b5_BP5']['med'],
+                         'b6_PP1': self.constants['b6_PP1']['med'], 'b7_PS2': self.constants['b7_PS2']['med'],
+                         'b8_BS4': self.constants['b8_BS4']['med']}
 
         # if doing senstivity analysis, override single parameter value specified in saParam to saType
         if self.saParam is None:
             pass
         elif self.saParam.startswith('p'):
-            if type(constants[self.saParam][self.saType]) is str:
-                self.p_priors[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+            if type(self.constants[self.saParam][self.saType]) is str:
+                self.p_priors[self.saParam] = eval(str(self.constants[self.saParam][self.saType]))
             else:
-                self.p_priors[self.saParam] = constants[self.saParam][self.saType]
+                self.p_priors[self.saParam] = self.constants[self.saParam][self.saType]
         elif self.saParam.startswith('b'):
-            if type(constants[self.saParam][self.saType]) is str:
-                self.b_priors[self.saParam] = eval(str(constants[self.saParam][self.saType]))
+            if type(self.constants[self.saParam][self.saType]) is str:
+                self.b_priors[self.saParam] = eval(str(self.constants[self.saParam][self.saType]))
             else:
-                self.b_priors[self.saParam] = constants[self.saParam][self.saType]
+                self.b_priors[self.saParam] = self.constants[self.saParam][self.saType]
         else:
             logger.error('unknown saParam: ' + str(self.saParam))
             sys.exit(1)
 
         # P_bayesian_LRs represents the LRs for pathogenic evidence (strong, moderate, supporting)
-        self.P_bayesian_LRs = {'PS': constants['PS'], 'PM': constants['PM'], 'PP': constants['PP']}
+        self.P_bayesian_LRs = {'PS': self.constants['PS'], 'PM': self.constants['PM'], 'PP': self.constants['PP']}
         # B_bayesian_LRs represents the LRs for benign evidence (strong, and supporting)
-        self.B_bayesian_LRs = {'BS': constants['BS'], 'BP': constants['BP']}
+        self.B_bayesian_LRs = {'BS': self.constants['BS'], 'BP': self.constants['BP']}
 
         # PSF is the pathogenic selection factor --> how much more likely is someone to have a pathogenic variant
-        self.PSF = constants['PSF']
+        self.PSF = self.constants['PSF']
 
         # assumptions about the initial sizes of each type of center
-        self.smallInitialSize = constants['smallInitialSize']
-        self.smallTestsPerYear = constants['smallTestsPerYear']
-        self.mediumInitialSize = constants['mediumInitialSize']
-        self.mediumTestsPerYear = constants['mediumTestsPerYear']
-        self.largeInitialSize = constants['largeInitialSize']
-        self.largeTestsPerYear = constants['largeTestsPerYear']
+        self.smallInitialSize = self.constants['smallInitialSize']
+        self.smallTestsPerYear = self.constants['smallTestsPerYear']
+        self.mediumInitialSize = self.constants['mediumInitialSize']
+        self.mediumTestsPerYear = self.constants['mediumTestsPerYear']
+        self.largeInitialSize = self.constants['largeInitialSize']
+        self.largeTestsPerYear = self.constants['largeTestsPerYear']
 
         # thresholds from Tavtigian et al
-        self.benignThreshold = constants['benignThreshold']
-        self.likelyBenignThreshold = constants['likelyBenignThreshold']
-        self.neutralThreshold = constants['neutralThreshold']
-        self.likelyPathogenicThreshold = constants['likelyPathogenicThreshold']
-        self.pathogenicThreshold = constants['pathogenicThreshold']
+        self.benignThreshold = self.constants['benignThreshold']
+        self.likelyBenignThreshold = self.constants['likelyBenignThreshold']
+        self.neutralThreshold = self.constants['neutralThreshold']
+        self.likelyPathogenicThreshold = self.constants['likelyPathogenicThreshold']
+        self.pathogenicThreshold = self.constants['pathogenicThreshold']
 
         # create dictionary for P and LP classifications pathogenicVariantClassifications[year][variant] = 'P' or 'LP'
         # similar for B and LB
@@ -473,12 +475,15 @@ class TestCenter:
         lbYearN = self.likelyBenignProbabilities[n]
         bYearN = self.benignProbabilities[n]
         lpYearN = self.likelyPathogenicProbabilities[n]
-        pYearN = self.likelyBenignProbabilities[n]
+        pYearN = self.pathogenicProbabilities[n]
         return {'benign': lbYearN + bYearN, 'pathogenic': lpYearN + pYearN}
 
 
 def runAnalysis(types, parameters, config, outputDir):
     allLRPs = dict()
+    #types = ['low', 'med', 'hi']
+    #parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
+    #              "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     for t in types:
         allLRPs[t] = dict()
         for p in parameters:
@@ -488,7 +493,8 @@ def runAnalysis(types, parameters, config, outputDir):
             # mySimulation.hist(outputDir=outputDir)
             mySimulation.prob(outputDir=outputDir, centerListList = [[]])
             # mySimulation.save(outputDir=outputDir)
-            allLRPs[t][p] = mySimulation.allCenters.getYearNProbabilities(mySimulation.years)
+            allLRPs[t][p] = str(mySimulation.constants[p][t]) + '_' + \
+                str(mySimulation.allCenters.getYearNProbabilities(mySimulation.years))
     return allLRPs
 
 
