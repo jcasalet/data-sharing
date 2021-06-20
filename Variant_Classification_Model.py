@@ -417,7 +417,6 @@ class TestCenter:
         LP = simulation.likelyPathogenicThreshold
         P = simulation.pathogenicThreshold
 
-
         for year in range(1, simulation.years + 1):
             pLRPs = list()
             pFreqPs = list()
