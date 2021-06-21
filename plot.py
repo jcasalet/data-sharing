@@ -44,7 +44,7 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.ylabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
     plt.xlabel('year', fontsize=16)
     centerName = center.name.split('_')[0]
-    plt.title(centerName, fontdict = {'fontsize' : 16})
+    plt.title(centerName, fontdict = {'fontsize' : 20})
 
     benignLabel = mpatches.Patch(color='blue', label='benign')
     pathogenicLabel = mpatches.Patch(color='orange', label='pathogenic')
@@ -100,7 +100,7 @@ def plotLRPHist(simulation, center, year, outputDir):
 
     plt.xlabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
     plt.ylabel('probability mass', fontsize=16)
-    plt.title(centerName, fontdict = {'fontsize' : 16})
+    plt.title(centerName, fontdict = {'fontsize' : 20})
 
     #plt.legend(loc='upper right')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -148,7 +148,7 @@ def plotAnyCenterProbability(simulation, outputDir, version):
 
     plt.ylabel('probability of classification', fontsize=16)
     plt.xlabel('year', fontsize=16)
-    plt.title('any', fontdict = {'fontsize' : 16})
+    plt.title('any', fontdict = {'fontsize' : 20})
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
@@ -177,7 +177,7 @@ def plotProbability(simulation, center, outputDir):
 
     plt.ylabel('probability of classification', fontsize=16)
     plt.xlabel('year', fontsize=16)
-    plt.title(center.name.split('_')[0], fontdict = {'fontsize' : 16})
+    plt.title(center.name.split('_')[0], fontdict = {'fontsize' : 20})
     #plt.legend(loc='upper left', prop= {'size': 8} )
     #plt.show()
 
