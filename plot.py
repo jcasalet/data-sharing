@@ -55,7 +55,7 @@ def plotLRPScatter(simulation, center, year, outputDir):
     #plt.show()
 
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' +
-                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrp_scatter', dpi=300)
+                center.name + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrp_scatter', dpi=300)
     plt.close()
 
 
@@ -108,7 +108,7 @@ def plotLRPHist(simulation, center, year, outputDir):
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
-                centerName + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
+                center.name + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
     plt.close()
 
 def plotAnyCenterProbability(simulation, outputDir, version):
