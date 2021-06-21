@@ -41,8 +41,8 @@ def plotLRPScatter(simulation, center, year, outputDir):
                 plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
                 plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
 
-    plt.ylabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=14)
-    plt.xlabel('year', fontsize=14)
+    plt.ylabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
+    plt.xlabel('year', fontsize=16)
     centerName = center.name.split('_')[0]
     plt.title(centerName)
 
@@ -98,8 +98,8 @@ def plotLRPHist(simulation, center, year, outputDir):
     plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], color=['blue', 'orange'], density=True,
              range=(-15, 50), bins=bins)
 
-    plt.xlabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=14)
-    plt.ylabel('probability mass', fontsize=14)
+    plt.xlabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
+    plt.ylabel('probability mass', fontsize=16)
     plt.title(centerName)
 
     #plt.legend(loc='upper right')
@@ -146,8 +146,8 @@ def plotAnyCenterProbability(simulation, outputDir, version):
     plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
     plt.plot(yearList, LBanyCenter, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
-    plt.ylabel('probability of classification', fontsize=14)
-    plt.xlabel('year', fontsize=14)
+    plt.ylabel('probability of classification', fontsize=16)
+    plt.xlabel('year', fontsize=16)
     plt.title('any')
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
@@ -175,8 +175,8 @@ def plotProbability(simulation, center, outputDir):
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
     plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
 
-    plt.ylabel('probability of classification', fontsize=14)
-    plt.xlabel('year', fontsize=14)
+    plt.ylabel('probability of classification', fontsize=16)
+    plt.xlabel('year', fontsize=16)
     plt.title(center.name.split('_')[0])
     #plt.legend(loc='upper left', prop= {'size': 8} )
     #plt.show()
