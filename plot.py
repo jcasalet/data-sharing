@@ -20,25 +20,25 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.xlim(0, simulation.years)
     plt.ylim(-5, 5)
 
-    plt.axhline(y=simulation.benignThreshold, color='green', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=simulation.likelyBenignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.benignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.likelyBenignThreshold, color='green', linestyle='dashed', linewidth=0.75)
     plt.axhline(y=simulation.neutralThreshold, color='black', linestyle='dashed', linewidth=1.0)
     plt.axhline(y=simulation.likelyPathogenicThreshold, color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axhline(y=simulation.pathogenicThreshold, color='red', linestyle='dashed', linewidth=0.75)
+    plt.axhline(y=simulation.pathogenicThreshold, color='brown', linestyle='dashed', linewidth=0.75)
 
     for variant in range(center.numVariants):
         if center.numVariants <= 10:
-            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='brown', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
             plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
         elif center.numVariants <= 100 and variant % 10 == 0:
-            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='brown', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
             plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
         elif center.numVariants <= 1000 and variant % 100 == 0:
-            plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')  # , alpha=(1.0+variant)/(3+variant))
+            plt.plot(x, pathogenic_y[variant], color='brown', label='pathogenic')  # , alpha=(1.0+variant)/(3+variant))
             plt.plot(x, benign_y[variant], color='blue', label='benign')  # , alpha=(1.0+variant)/(3+variant))
         else:
             if variant % 1000 == 0:
-                plt.plot(x, pathogenic_y[variant], color='orange', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
+                plt.plot(x, pathogenic_y[variant], color='brown', label='pathogenic')#, alpha=(1.0+variant)/(3+variant))
                 plt.plot(x, benign_y[variant], color='blue', label='benign')#, alpha=(1.0+variant)/(3+variant))
 
     plt.ylabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
@@ -47,7 +47,7 @@ def plotLRPScatter(simulation, center, year, outputDir):
     plt.title(centerName, fontdict = {'fontsize' : 20})
 
     benignLabel = mpatches.Patch(color='blue', label='benign')
-    pathogenicLabel = mpatches.Patch(color='orange', label='pathogenic')
+    pathogenicLabel = mpatches.Patch(color='brown', label='pathogenic')
     #plt.legend(handles=[benignLabel, pathogenicLabel], loc='lower left')
 
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
@@ -87,15 +87,15 @@ def plotLRPHist(simulation, center, year, outputDir):
     plt.ylim(0, 1)
 
 
-    plt.axvline(x=simulation.benignThreshold, color='green', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=simulation.likelyBenignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.benignThreshold, color='blue', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.likelyBenignThreshold, color='green', linestyle='dashed', linewidth=0.75)
     plt.axvline(x=simulation.neutralThreshold, color='black', linestyle='dashed', linewidth=1.0)
     plt.axvline(x=simulation.likelyPathogenicThreshold, color='orange', linestyle='dashed', linewidth=0.75)
-    plt.axvline(x=simulation.pathogenicThreshold, color='red', linestyle='dashed', linewidth=0.75)
+    plt.axvline(x=simulation.pathogenicThreshold, color='brown', linestyle='dashed', linewidth=0.75)
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], color=['blue', 'orange'], density=True,
+    plt.hist([benign_x, pathogenic_x], label=['benign', 'pathogenic'], color=['blue', 'brown'], density=True,
              range=(-15, 50), bins=bins)
 
     plt.xlabel('evidence = ' + r'$\sum_{i} log(odds_i)$', fontsize=16)
@@ -141,10 +141,10 @@ def plotAnyCenterProbability(simulation, outputDir, version):
         LPanyCenter.append(float(lpSum / float(simulation.numVariants)))
 
     yearList = [i for i in range(0, simulation.years + 1)]
-    plt.plot(yearList, PanyCenter, marker='.', color='red', label='pathogenic')
-    plt.plot(yearList, BanyCenter, marker='.', color='green', label='benign')
+    plt.plot(yearList, PanyCenter, marker='.', color='brown', label='pathogenic')
+    plt.plot(yearList, BanyCenter, marker='.', color='blue', label='benign')
     plt.plot(yearList, LPanyCenter, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, LBanyCenter, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+    plt.plot(yearList, LBanyCenter, marker='.', color='green', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=16)
     plt.xlabel('year', fontsize=16)
@@ -170,10 +170,10 @@ def plotProbability(simulation, center, outputDir):
     #ax.hist([center.pathogenicProbabilities, center.benignProbabilities, center.likelyPathogenicProbabilities, center.likelyBenignProbabilities], bins=5, density=False, histtype='bar', stacked=True)
     #ax.set_title('stacked bar')
 
-    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='red', label='pathogenic')
-    plt.plot(yearList, center.benignProbabilities, marker='.', color='green', label='benign')
+    plt.plot(yearList, center.pathogenicProbabilities, marker='.', color='brown', label='pathogenic')
+    plt.plot(yearList, center.benignProbabilities, marker='.', color='blue', label='benign')
     plt.plot(yearList, center.likelyPathogenicProbabilities, marker='.', color='orange', label=' likely pathogenic', linestyle='dashed')
-    plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='blue', label=' likely benign', linestyle='dashed')
+    plt.plot(yearList, center.likelyBenignProbabilities, marker='.', color='green', label=' likely benign', linestyle='dashed')
 
     plt.ylabel('probability of classification', fontsize=16)
     plt.xlabel('year', fontsize=16)
