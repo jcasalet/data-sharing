@@ -114,7 +114,8 @@ def sampleNumberOfPeopleWithVariant(n, freq, rng):
     # 2. variant occurs independently
     # 3. variant counts are discrete (e.g. whole numbers only)
     # P(X=x) = lam^x * e^(-lam) / x! (where lam = mean, lam = variance)
-    return sum(rpois(n, freq, rng))
+    #return sum(rpois(n, freq, rng))
+    return rng.binomial(n, freq)
 
 def calculateSumOfLogs(lrList):
     mySum = 0
