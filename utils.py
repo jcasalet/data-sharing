@@ -104,7 +104,8 @@ def sampleEvidenceFromObservations(expectedNum, observations, rng):
 def getExpectedNumsFromPSF(n, PSF):
     # for now, we've fixed PSF at a number but could in the future make it a distribution from which we sample
     fractionBenign = 1.0 / (PSF +1)
-    numBenign = int(fractionBenign * n)
+    # numBenign = int(fractionBenign * n)
+    numBenign = math.ceil(fractionBenign * n)
     numPathogenic = n - numBenign
     return numBenign, numPathogenic
 
