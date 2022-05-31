@@ -111,7 +111,7 @@ def plotLRPHist(simulation, center, year, outputDir):
                 center.name + '_' + str(year) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_lrphist', dpi=300)
     plt.close()
 
-def plotAnyCenterProbability(simulation, outputDir, version):
+def plotAnyCenterProbability(simulation, outputDir):
 
     plt.xlim(0, simulation.years)
     plt.ylim(0, 1)
@@ -153,7 +153,7 @@ def plotAnyCenterProbability(simulation, outputDir, version):
     dist = str(simulation.nSmall) + '_' + str(simulation.nMedium) + '_' + str(simulation.nLarge)
 
     plt.savefig(outputDir + '/' + simulation.saType + '_' + str(simulation.saParam) + '_' + simulation.name + '_' + \
-                "any-center" + '_' + version + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
+                "any-center" + '_' + str(simulation.years) + 'yrs_' + str(simulation.frequency) + '_' + dist + '_probs',
                 dpi=300)
     plt.close()
 

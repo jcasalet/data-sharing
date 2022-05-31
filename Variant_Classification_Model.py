@@ -480,16 +480,13 @@ class TestCenter:
 
 def runAnalysis(types, parameters, config, outputDir):
     allLRPs = dict()
-    #types = ['low', 'med', 'hi']
-    #parameters = ["p2_PM6", "p4_BP2", "p5_BP5", "p6_PP1", "p7_PS2", "p8_BS4",
-    #              "b2_PM6", "b4_BP2", "b5_BP5", "b6_PP1", "b7_PS2", "b8_BS4"]
     for t in types:
         allLRPs[t] = dict()
         for p in parameters:
             mySimulation = Simulation(config=config.data, saType=t, saParam=p)
             mySimulation.run()
-            # mySimulation.scatter(outputDir=outputDir)
-            # mySimulation.hist(outputDir=outputDir)
+            mySimulation.scatter(outputDir=outputDir)
+            mySimulation.hist(outputDir=outputDir)
             mySimulation.prob(outputDir=outputDir, centerListList = [[]])
             # mySimulation.save(outputDir=outputDir)
             allLRPs[t][p] = str(mySimulation.constants[p][t]) + '_' + \
@@ -515,7 +512,7 @@ def main():
         mySimulation.scatter(outputDir=outputDir)
         mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
         mySimulation.prob(outputDir=outputDir, centerListList=mySimulation.centerListList)
-        plot.plotAnyCenterProbability(mySimulation, outputDir, 'correct')
+        plot.plotAnyCenterProbability(mySimulation, outputDir)
 
 
     elif jobType == 'analyze':
