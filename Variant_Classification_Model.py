@@ -486,7 +486,7 @@ def runAnalysis(types, parameters, config, outputDir):
             mySimulation = Simulation(config=config.data, saType=t, saParam=p)
             mySimulation.run()
             mySimulation.scatter(outputDir=outputDir)
-            mySimulation.hist(outputDir=outputDir)
+            mySimulation.hist(outputDir=outputDir, year=mySimulation.years)
             mySimulation.prob(outputDir=outputDir, centerListList = [[]])
             # mySimulation.save(outputDir=outputDir)
             allLRPs[t][p] = str(mySimulation.constants[p][t]) + '_' + \
